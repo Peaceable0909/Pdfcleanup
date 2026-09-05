@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Intake — Student Document Organizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --paper: #F7F3E8;
+    --paper-dim: #EFE8D6;
+    --ink: #22281F;
+    --ink-soft: #5B5A4B;
+    --tan: #D9C6A0;
+    --tan-dark: #B79E6E;
+    --rule: rgba(34,40,31,0.16);
+    --stamp: #A8442B;
+    --stamp-dim: #C97258;
+    --sage: #5D7A56;
+    --sage-dim: #E4EADF;
+    --paper-white: #FCFAF3;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  ::selection{ background: var(--tan); }
+
+  .app{ display:flex; flex-direction:column; min-height:100vh; }
+
+  /* ---------- Header ---------- */
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:24px; padding:22px 28px 16px 28px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+    flex-wrap: wrap;
+  }
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .mark{
+    font-family:'Source Serif 4', serif; font-weight:600; font-size:22px;
+    letter-spacing: -0.01em;
+  }
+  .brand .sub{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); }
+
+  .student-field{
+    display:flex; align-items:baseline; gap:10px;
+    border-bottom: 2px solid var(--tan-dark);
+    padding: 4px 2px 8px 2px;
+    min-width: 260px;
+  }
+  .student-field label{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-soft);
+    white-space:nowrap;
+  }
+  .student-field input{
+    border:none; background:transparent; outline:none;
+    font-family:'Source Serif 4', serif; font-size:19px; color:var(--ink);
+    width: 100%;
+  }
+  .student-field input::placeholder{ color: var(--tan-dark); font-family:'Inter',sans-serif; font-style:italic; }
+
+  .stats{ display:flex; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color: var(--ink-soft); }
+  .stats b{ color: var(--ink); font-weight:600; }
+
+  /* ---------- Body layout ---------- */
+  .body-grid{ display:flex; flex:1; min-height:0; }
+
+  /* ----- Sidebar: folder rail ----- */
+  .rail{
+    width: 280px; flex-shrink:0;
+    background: var(--paper-dim);
+    border-right: 1px solid var(--rule);
+    display:flex; flex-direction:column;
+    min-height: 0;
+  }
+  .rail-head{
+    padding: 16px 16px 10px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .rail-head h2{
+    margin:0; font-family:'Source Serif 4', serif; font-weight:600; font-size:15px;
+  }
+  .btn-add{
+    border:1px solid var(--tan-dark); background: var(--paper-white); color: var(--ink);
+    font-family:'Inter',sans-serif; font-size:12px; padding:5px 10px;
+    border-radius:3px; cursor:pointer;
+  }
+  .btn-add:hover{ background: var(--tan); }
+
+  .doc-list{ overflow-y:auto; padding: 4px 12px 16px 12px; flex:1; }
+  .doc-tab{
+    position:relative;
+    background: var(--paper-white);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--tan-dark);
+    border-radius: 2px;
+    padding: 10px 12px 10px 12px;
+    margin-bottom: 8px;
+    cursor:pointer;
+  }
+  .doc-tab.active{
+    border-left-color: var(--stamp);
+    box-shadow: 0 1px 0 var(--rule);
+  }
+  .doc-tab .row1{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .doc-tab input.doc-type{
+    border:none; background:transparent; outline:none;
+    font-family:'Source Serif 4', serif; font-weight:600; font-size:14.5px; color:var(--ink);
+    width: 100%; padding:0;
+  }
+  .doc-tab .meta{
+    margin-top:4px;
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--ink-soft);
+    display:flex; align-items:center; gap:8px;
+  }
+  .doc-tab .filename-preview{
+    margin-top:5px; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    color: var(--stamp); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .icon-btn{
+    border:none; background:transparent; cursor:pointer; padding:3px;
+    display:inline-flex; align-items:center; justify-content:center;
+    color: var(--ink-soft); border-radius:3px;
+  }
+  .icon-btn:hover{ background: var(--tan); color: var(--ink); }
+  .icon-btn svg{ width:14px; height:14px; display:block; }
+
+  .empty-rail{
+    padding: 20px 8px; color: var(--ink-soft); font-size:12.5px; font-style:italic;
+  }
+
+  /* ----- Main workspace ----- */
+  .workspace{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+
+  .dropzone{
+    margin: 28px; padding: 46px 20px;
+    border: 1.5px dashed var(--tan-dark);
+    border-radius: 4px;
+    text-align:center;
+    background: var(--paper-white);
+    color: var(--ink-soft);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .dropzone.drag{ background: var(--sage-dim); border-color: var(--sage); }
+  .dropzone h3{
+    margin: 0 0 6px 0; font-family:'Source Serif 4', serif; font-weight:600; font-size:19px; color: var(--ink);
+  }
+  .dropzone p{ margin:0 0 16px 0; font-size:13px; }
+  .dropzone .accept{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--tan-dark); margin-top:14px; }
+
+  .btn-primary{
+    background: var(--stamp); color: var(--paper-white); border:none;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+    padding: 9px 18px; border-radius:3px; cursor:pointer;
+  }
+  .btn-primary:hover{ background:#8f3722; }
+  .btn-primary:disabled{ background: var(--tan-dark); cursor:not-allowed; }
+
+  .btn-secondary{
+    background: transparent; color: var(--ink); border:1px solid var(--tan-dark);
+    font-family:'Inter',sans-serif; font-size:13px;
+    padding: 8px 16px; border-radius:3px; cursor:pointer;
+  }
+  .btn-secondary:hover{ background: var(--tan); }
+
+  .doc-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 28px 10px 28px; flex-wrap:wrap; gap:10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .doc-toolbar h2{ margin:0; font-family:'Source Serif 4', serif; font-size:18px; font-weight:600; }
+  .doc-toolbar .filename{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--stamp); margin-top:3px; }
+  .toolbar-actions{ display:flex; gap:8px; align-items:center; }
+
+  .page-grid{
+    display:flex; flex-wrap:wrap; gap:16px;
+    padding: 20px 28px 28px 28px;
+    overflow-y:auto; flex:1; align-content:flex-start;
+  }
+  .page-card{
+    width: 148px;
+    background: var(--paper-white);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 8px;
+    cursor: grab;
+    position: relative;
+  }
+  .page-card.dragging{ opacity:0.4; }
+  .page-card .thumb-wrap{
+    width:100%; height:170px; background:#fff; border:1px solid var(--rule);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    margin-bottom:6px;
+  }
+  .page-card .thumb-wrap img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .page-card .thumb-wrap.rot90 img{ transform: rotate(90deg); max-width:none; max-height:100%; width:auto; }
+  .page-card .thumb-wrap.rot180 img{ transform: rotate(180deg); }
+  .page-card .thumb-wrap.rot270 img{ transform: rotate(270deg); max-width:none; max-height:100%; width:auto; }
+  .page-card .idx{
+    position:absolute; top:12px; left:12px; background: var(--ink); color: var(--paper-white);
+    font-family:'IBM Plex Mono', monospace; font-size:10px; padding:1px 5px; border-radius:2px;
+    opacity:0.85;
+  }
+  .page-card .ctrl-row{ display:flex; align-items:center; justify-content:space-between; }
+  .page-card select.move-to{
+    font-family:'Inter',sans-serif; font-size:10.5px; border:1px solid var(--rule); border-radius:2px;
+    background: var(--paper); color: var(--ink); max-width:100%; padding:2px;
+  }
+
+  .add-page-card{
+    width:148px; height: 208px; border: 1.5px dashed var(--tan-dark); border-radius:3px;
+    display:flex; align-items:center; justify-content:center; color: var(--ink-soft);
+    font-size:12px; text-align:center; cursor:pointer; background: var(--paper-dim);
+  }
+  .add-page-card:hover{ background: var(--tan); }
+
+  .no-doc-selected{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    color: var(--ink-soft); font-style:italic; font-size:13.5px;
+  }
+
+  /* ----- Footer: download bar ----- */
+  footer.download-bar{
+    border-top: 1px solid var(--rule);
+    background: var(--paper-dim);
+    padding: 14px 28px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  .download-list{ display:flex; flex-wrap:wrap; gap:10px 18px; font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .download-list label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .download-actions{ display:flex; gap:10px; }
+
+  /* ----- Lightbox viewer ----- */
+  .lightbox{
+    position:fixed; inset:0; background: rgba(34,40,31,0.92);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    z-index: 50;
+  }
+  .lightbox.open{ display:flex; }
+  .lightbox img{ max-width:82vw; max-height:70vh; background:#fff; box-shadow:0 4px 30px rgba(0,0,0,.5); }
+  .lightbox .lb-controls{
+    margin-top:16px; display:flex; align-items:center; gap:14px;
+    color: var(--paper-white); font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+  }
+  .lightbox .lb-controls button{
+    background: transparent; border:1px solid var(--tan); color: var(--paper-white);
+    padding:6px 12px; border-radius:3px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .lightbox .lb-controls button:hover{ background: rgba(255,255,255,0.12); }
+  .lightbox .lb-close{
+    position:absolute; top:20px; right:28px; background:transparent; border:none;
+    color: var(--paper-white); font-size:26px; cursor:pointer; line-height:1;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background: var(--ink); color: var(--paper-white); padding:10px 18px;
+    border-radius:4px; font-size:13px; z-index:100; opacity:0; pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  .toast.show{ opacity:1; }
+
+  input[type=checkbox]{ accent-color: var(--stamp); width:14px; height:14px; }
+
+  @media (max-width: 760px){
+    .body-grid{ flex-direction:column; }
+    .rail{ width:100%; border-right:none; border-bottom:1px solid var(--rule); max-height:260px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">Intake</div>
+      <div class="sub">student document organizer</div>
+    </div>
+    <div class="student-field">
+      <label for="studentName">Student</label>
+      <input id="studentName" type="text" placeholder="Full name" />
+    </div>
+    <div class="stats">
+      <div>Files in <b id="statFiles">0</b></div>
+      <div>Documents <b id="statDocs">0</b></div>
+      <div>Pages <b id="statPages">0</b></div>
+    </div>
+  </header>
+
+  <div class="body-grid">
+
+    <aside class="rail">
+      <div class="rail-head">
+        <h2>Documents</h2>
+        <button class="btn-add" id="newDocBtn" type="button">New document</button>
+      </div>
+      <div class="doc-list" id="docList">
+        <div class="empty-rail">Upload files to start a document set.</div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <div class="dropzone" id="dropzone">
+        <h3>Drop the student's files here</h3>
+        <p>Passports, transcripts, scanned pages, bank statements — mix of PDFs and photos is fine.</p>
+        <button class="btn-primary" id="chooseFilesBtn" type="button">Choose files</button>
+        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
+        <div class="accept">PDF · JPG · PNG — Word files aren't converted yet, save those as PDF first</div>
+      </div>
+
+      <div class="doc-toolbar" id="docToolbar" style="display:none">
+        <div>
+          <h2 id="toolbarTitle">—</h2>
+          <div class="filename" id="toolbarFilename"></div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-secondary" id="addMoreBtn" type="button">Add pages to this document</button>
+          <button class="btn-secondary" id="deleteDocBtn" type="button">Delete document</button>
+        </div>
+      </div>
+
+      <div class="page-grid" id="pageGrid" style="display:none"></div>
+      <div class="no-doc-selected" id="noDocMsg">Select or create a document to organize its pages.</div>
+    </main>
+  </div>
+
+  <footer class="download-bar">
+    <div class="download-list" id="downloadList"></div>
+    <div class="download-actions">
+      <button class="btn-secondary" id="downloadSelectedBtn" type="button">Download selected</button>
+      <button class="btn-primary" id="downloadZipBtn" type="button">Download all as ZIP</button>
+    </div>
+  </footer>
+</div>
+
+<input type="file" id="addPagesInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" type="button">&times;</button>
+  <img id="lbImg" src="" alt="Page preview" />
+  <div class="lb-controls">
+    <button id="lbPrev" type="button">Previous page</button>
+    <span id="lbPageLabel">Page 1 / 1</span>
+    <button id="lbNext" type="button">Next page</button>
+    <button id="lbRotate" type="button">Rotate</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const { PDFDocument, degrees } = PDFLib;
+
+/* ---------------- State ---------------- */
+// fileStore: fileId -> { kind: 'pdf'|'image', name, arrayBuffer (pdf), pdfjsDoc, pdfLibDoc, dataUrl (image), mime }
+const fileStore = {};
+let documents = []; // { id, docType, pages: [ {id, fileId, pageNum(1-based, pdf only), rotation, thumb} ] }
+let selectedDocId = null;
+let uidCounter = 1;
+const uid = (p) => `${p}_${uidCounter++}`;
+
+const DOC_TYPE_GUESSES = [
+  ['passport', 'Passport'],
+  ['transcript', 'Transcript'],
+  ['certificate', 'Certificate'],
+  ['admission', 'Admission Letter'],
+  ['offer', 'Admission Letter'],
+  ['bank', 'Bank Statement'],
+  ['statement', 'Bank Statement'],
+  ['affidavit', 'Affidavit'],
+  ['visa', 'Visa'],
+  ['id', 'ID Card'],
+];
+
+function guessDocType(filename){
+  const lower = filename.toLowerCase();
+  for(const [key, label] of DOC_TYPE_GUESSES){
+    if(lower.includes(key)) return label;
+  }
+  return 'Other Document';
+}
+
+function cleanBaseName(filename){
+  return filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g,' ').trim();
+}
+
+/* ---------------- Toast ---------------- */
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+/* ---------------- File ingestion ---------------- */
+async function handleFiles(fileList, targetDocId){
+  const files = Array.from(fileList);
+  for(const file of files){
+    const ext = file.name.split('.').pop().toLowerCase();
+    try{
+      if(ext === 'pdf'){
+        await ingestPdf(file, targetDocId);
+      } else if(['jpg','jpeg','png'].includes(ext)){
+        await ingestImage(file, targetDocId);
+      } else {
+        showToast(`Skipped "${file.name}" — unsupported format for now`);
+      }
+    } catch(err){
+      console.error(err);
+      showToast(`Couldn't read "${file.name}"`);
+    }
+  }
+  render();
+}
+
+async function ingestPdf(file, targetDocId){
+  const arrayBuffer = await file.arrayBuffer();
+  const fileId = uid('file');
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer.slice(0) });
+  const pdfjsDoc = await loadingTask.promise;
+  fileStore[fileId] = { kind:'pdf', name:file.name, arrayBuffer, pdfjsDoc, pdfLibDoc:null };
+
+  let doc = targetDocId ? documents.find(d=>d.id===targetDocId) : null;
+  if(!doc){
+    doc = { id: uid('doc'), docType: guessDocType(file.name), pages: [], sourceName:file.name };
+    documents.push(doc);
+    if(!selectedDocId) selectedDocId = doc.id;
+  }
+
+  for(let p=1; p<=pdfjsDoc.numPages; p++){
+    const thumb = await renderPdfPageThumb(pdfjsDoc, p);
+    doc.pages.push({ id: uid('pg'), fileId, pageNum: p, rotation:0, thumb });
+  }
+}
+
+async function renderPdfPageThumb(pdfjsDoc, pageNum, scale){
+  const page = await pdfjsDoc.getPage(pageNum);
+  const viewport = page.getViewport({ scale: scale || 0.5 });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas.toDataURL('image/png');
+}
+
+async function ingestImage(file, targetDocId){
+  const dataUrl = await new Promise((res, rej)=>{
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+  const fileId = uid('file');
+  fileStore[fileId] = { kind:'image', name:file.name, dataUrl, mime:file.type || 'image/jpeg' };
+
+  let doc = targetDocId ? documents.find(d=>d.id===targetDocId) : null;
+  if(!doc){
+    doc = { id: uid('doc'), docType: guessDocType(file.name), pages: [], sourceName:file.name };
+    documents.push(doc);
+    if(!selectedDocId) selectedDocId = doc.id;
+  }
+  doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl });
+}
+
+/* ---------------- Document / page operations ---------------- */
+function createNewDocument(){
+  const doc = { id: uid('doc'), docType:'Untitled Document', pages: [], sourceName:'' };
+  documents.push(doc);
+  selectedDocId = doc.id;
+  render();
+}
+
+function deleteDocument(docId){
+  if(!confirm('Delete this document and its pages? This cannot be undone.')) return;
+  documents = documents.filter(d=>d.id!==docId);
+  if(selectedDocId === docId){
+    selectedDocId = documents.length ? documents[0].id : null;
+  }
+  render();
+}
+
+function rotatePage(docId, pageId){
+  const doc = documents.find(d=>d.id===docId);
+  const pg = doc.pages.find(p=>p.id===pageId);
+  pg.rotation = (pg.rotation + 90) % 360;
+  render();
+}
+
+function deletePage(docId, pageId){
+  const doc = documents.find(d=>d.id===docId);
+  doc.pages = doc.pages.filter(p=>p.id!==pageId);
+  render();
+}
+
+function movePageToDoc(fromDocId, pageId, toDocId){
+  if(fromDocId === toDocId) return;
+  const fromDoc = documents.find(d=>d.id===fromDocId);
+  const pgIdx = fromDoc.pages.findIndex(p=>p.id===pageId);
+  const [pg] = fromDoc.pages.splice(pgIdx,1);
+
+  let toDoc;
+  if(toDocId === '__new__'){
+    toDoc = { id: uid('doc'), docType:'Untitled Document', pages: [], sourceName:'' };
+    documents.push(toDoc);
+  } else {
+    toDoc = documents.find(d=>d.id===toDocId);
+  }
+  toDoc.pages.push(pg);
+  render();
+}
+
+function reorderPage(docId, fromIdx, toIdx){
+  const doc = documents.find(d=>d.id===docId);
+  const [pg] = doc.pages.splice(fromIdx,1);
+  doc.pages.splice(toIdx,0,pg);
+  render();
+}
+
+/* ---------------- Filenames ---------------- */
+function studentNameValue(){
+  return document.getElementById('studentName').value.trim() || 'Student';
+}
+function sanitizeFilePart(s){
+  return s.replace(/[\\/:*?"<>|]/g,'').trim();
+}
+function filenameFor(doc){
+  const student = sanitizeFilePart(studentNameValue());
+  const type = sanitizeFilePart(doc.docType || 'Document');
+  return `${student} - ${type}.pdf`;
+}
+
+/* ---------------- Rendering ---------------- */
+function iconSvg(name){
+  const icons = {
+    rotate: '<path d="M3 3v5h5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 9a5.5 5.5 0 1 0 1.6-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    trash: '<path d="M2.5 4h11M5.5 4V2.8c0-.4.3-.8.8-.8h3.4c.4 0 .8.3.8.8V4M6 4v8.2c0 .4.3.8.8.8h4.4c.4 0 .8-.3.8-.8V4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    expand: '<path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+  return `<svg viewBox="0 0 18 18">${icons[name]||''}</svg>`;
+}
+
+function render(){
+  renderStats();
+  renderDocList();
+  renderWorkspace();
+  renderDownloadBar();
+}
+
+function renderStats(){
+  const fileCount = Object.keys(fileStore).length;
+  const docCount = documents.length;
+  const pageCount = documents.reduce((s,d)=>s+d.pages.length,0);
+  document.getElementById('statFiles').textContent = fileCount;
+  document.getElementById('statDocs').textContent = docCount;
+  document.getElementById('statPages').textContent = pageCount;
+}
+
+function renderDocList(){
+  const list = document.getElementById('docList');
+  if(documents.length === 0){
+    list.innerHTML = '<div class="empty-rail">Upload files to start a document set.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  documents.forEach(doc=>{
+    const tab = document.createElement('div');
+    tab.className = 'doc-tab' + (doc.id===selectedDocId ? ' active' : '');
+    tab.innerHTML = `
+      <div class="row1">
+        <input class="doc-type" data-doc="${doc.id}" value="${escapeAttr(doc.docType)}" />
+        <button class="icon-btn" data-action="delete-doc" data-doc="${doc.id}" title="Delete document">${iconSvg('trash')}</button>
+      </div>
+      <div class="meta">${doc.pages.length} page${doc.pages.length===1?'':'s'}</div>
+      <div class="filename-preview">${escapeHtml(filenameFor(doc))}</div>
+    `;
+    tab.addEventListener('click', (e)=>{
+      if(e.target.closest('input') || e.target.closest('button')) return;
+      selectedDocId = doc.id;
+      render();
+    });
+    tab.querySelector('input.doc-type').addEventListener('input', (e)=>{
+      doc.docType = e.target.value;
+      renderWorkspace();
+      renderDownloadBar();
+      // update just this tab's meta line without full re-render to preserve focus
+      tab.querySelector('.filename-preview').textContent = filenameFor(doc);
+    });
+    tab.querySelector('[data-action="delete-doc"]').addEventListener('click', ()=> deleteDocument(doc.id));
+    list.appendChild(tab);
+  });
+}
+
+function renderWorkspace(){
+  const dropzone = document.getElementById('dropzone');
+  const toolbar = document.getElementById('docToolbar');
+  const grid = document.getElementById('pageGrid');
+  const noDocMsg = document.getElementById('noDocMsg');
+
+  dropzone.style.display = documents.length===0 ? 'block' : 'none';
+
+  const doc = documents.find(d=>d.id===selectedDocId);
+  if(!doc){
+    toolbar.style.display='none';
+    grid.style.display='none';
+    noDocMsg.style.display = documents.length===0 ? 'none' : 'flex';
+    return;
+  }
+  noDocMsg.style.display='none';
+  toolbar.style.display='flex';
+  grid.style.display='flex';
+
+  document.getElementById('toolbarTitle').textContent = doc.docType || 'Untitled Document';
+  document.getElementById('toolbarFilename').textContent = filenameFor(doc);
+
+  grid.innerHTML = '';
+  doc.pages.forEach((pg, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'page-card';
+    card.draggable = true;
+    card.dataset.pageId = pg.id;
+    card.dataset.idx = idx;
+
+    const rotClass = pg.rotation===90?'rot90':pg.rotation===180?'rot180':pg.rotation===270?'rot270':'';
+    const otherDocs = documents.filter(d=>d.id!==doc.id);
+    const options = otherDocs.map(d=>`<option value="${d.id}">${escapeAttr(d.docType)}</option>`).join('');
+
+    card.innerHTML = `
+      <div class="idx">${idx+1}</div>
+      <div class="thumb-wrap ${rotClass}"><img src="${pg.thumb}" alt="Page ${idx+1}" data-action="open-lightbox" /></div>
+      <div class="ctrl-row">
+        <button class="icon-btn" data-action="rotate" title="Rotate">${iconSvg('rotate')}</button>
+        <button class="icon-btn" data-action="expand" title="Inspect">${iconSvg('expand')}</button>
+        <button class="icon-btn" data-action="delete" title="Delete page">${iconSvg('trash')}</button>
+      </div>
+      <select class="move-to" data-action="move-to">
+        <option value="">Move to…</option>
+        ${options}
+        <option value="__new__">New document</option>
+      </select>
+    `;
+    card.querySelector('[data-action="rotate"]').addEventListener('click', ()=>rotatePage(doc.id, pg.id));
+    card.querySelector('[data-action="delete"]').addEventListener('click', ()=>deletePage(doc.id, pg.id));
+    card.querySelector('[data-action="expand"]').addEventListener('click', ()=>openLightbox(doc.id, idx));
+    card.querySelector('img').addEventListener('click', ()=>openLightbox(doc.id, idx));
+    card.querySelector('select').addEventListener('change', (e)=>{
+      if(e.target.value) movePageToDoc(doc.id, pg.id, e.target.value);
+    });
+
+    card.addEventListener('dragstart', (e)=>{
+      card.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', idx);
+    });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+    card.addEventListener('dragover', (e)=> e.preventDefault());
+    card.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'),10);
+      const toIdx = parseInt(card.dataset.idx,10);
+      if(!isNaN(fromIdx) && fromIdx!==toIdx) reorderPage(doc.id, fromIdx, toIdx);
+    });
+
+    grid.appendChild(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className = 'add-page-card';
+  addCard.textContent = 'Add pages';
+  addCard.addEventListener('click', ()=>{
+    document.getElementById('addPagesInput').dataset.targetDoc = doc.id;
+    document.getElementById('addPagesInput').click();
+  });
+  grid.appendChild(addCard);
+}
+
+function renderDownloadBar(){
+  const list = document.getElementById('downloadList');
+  list.innerHTML = '';
+  documents.forEach(doc=>{
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" class="dl-check" data-doc="${doc.id}" checked /> ${escapeHtml(filenameFor(doc))}`;
+    list.appendChild(label);
+  });
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+/* ---------------- Lightbox ---------------- */
+let lbDocId = null, lbIdx = 0;
+function openLightbox(docId, idx){
+  lbDocId = docId; lbIdx = idx;
+  renderLightbox();
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+}
+function renderLightbox(){
+  const doc = documents.find(d=>d.id===lbDocId);
+  if(!doc) return;
+  const pg = doc.pages[lbIdx];
+  const img = document.getElementById('lbImg');
+  img.src = pg.thumb;
+  img.style.transform = `rotate(${pg.rotation}deg)`;
+  document.getElementById('lbPageLabel').textContent = `Page ${lbIdx+1} / ${doc.pages.length}`;
+}
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+document.getElementById('lbPrev').addEventListener('click', ()=>{
+  const doc = documents.find(d=>d.id===lbDocId);
+  if(!doc) return;
+  lbIdx = (lbIdx - 1 + doc.pages.length) % doc.pages.length;
+  renderLightbox();
+});
+document.getElementById('lbNext').addEventListener('click', ()=>{
+  const doc = documents.find(d=>d.id===lbDocId);
+  if(!doc) return;
+  lbIdx = (lbIdx + 1) % doc.pages.length;
+  renderLightbox();
+});
+document.getElementById('lbRotate').addEventListener('click', ()=>{
+  const doc = documents.find(d=>d.id===lbDocId);
+  const pg = doc.pages[lbIdx];
+  pg.rotation = (pg.rotation + 90) % 360;
+  renderLightbox();
+  renderWorkspace();
+});
+document.getElementById('lightbox').addEventListener('click', (e)=>{
+  if(e.target.id === 'lightbox') closeLightbox();
+});
+
+/* ---------------- PDF export ---------------- */
+async function getPdfLibDocFor(fileId){
+  const entry = fileStore[fileId];
+  if(!entry.pdfLibDoc){
+    entry.pdfLibDoc = await PDFDocument.load(entry.arrayBuffer);
+  }
+  return entry.pdfLibDoc;
+}
+
+function dataUrlToBytes(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function buildPdfForDocumentSafe(doc){
+  const outDoc = await PDFDocument.create();
+  for(const pg of doc.pages){
+    const fileEntry = fileStore[pg.fileId];
+    if(fileEntry.kind === 'pdf'){
+      const srcDoc = await getPdfLibDocFor(pg.fileId);
+      const [copied] = await outDoc.copyPages(srcDoc, [pg.pageNum - 1]);
+      if(pg.rotation){
+        const base = copied.getRotation().angle || 0;
+        copied.setRotation(degrees((base + pg.rotation) % 360));
+      }
+      outDoc.addPage(copied);
+    } else {
+      const bytes = dataUrlToBytes(fileEntry.dataUrl);
+      const img = fileEntry.mime.includes('png') ? await outDoc.embedPng(bytes) : await outDoc.embedJpg(bytes);
+      const iw = img.width, ih = img.height;
+      const rotated90 = pg.rotation===90 || pg.rotation===270;
+      const pageW = rotated90 ? ih : iw;
+      const pageH = rotated90 ? iw : ih;
+      const page = outDoc.addPage([pageW, pageH]);
+
+      let x=0, y=0;
+      const angle = pg.rotation || 0;
+      if(angle === 0){ x=0; y=0; }
+      else if(angle === 90){ x = pageW; y = 0; }
+      else if(angle === 180){ x = pageW; y = pageH; }
+      else if(angle === 270){ x = 0; y = pageH; }
+
+      page.drawImage(img, { x, y, width: iw, height: ih, rotate: degrees(angle) });
+    }
+  }
+  return outDoc.save();
+}
+
+function downloadBytes(bytes, filename){
+  const blob = new Blob([bytes], { type:'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadDoc(doc){
+  const bytes = await buildPdfForDocumentSafe(doc);
+  downloadBytes(bytes, filenameFor(doc));
+}
+
+async function downloadSelected(){
+  const checks = Array.from(document.querySelectorAll('.dl-check:checked'));
+  if(checks.length===0){ showToast('Select at least one document'); return; }
+  showToast('Building PDFs…');
+  for(const chk of checks){
+    const doc = documents.find(d=>d.id===chk.dataset.doc);
+    if(doc) await downloadDoc(doc);
+  }
+  showToast('Downloaded');
+}
+
+async function downloadAllZip(){
+  if(documents.length===0){ showToast('Nothing to download yet'); return; }
+  showToast('Packing ZIP…');
+  const zip = new JSZip();
+  for(const doc of documents){
+    const bytes = await buildPdfForDocumentSafe(doc);
+    zip.file(filenameFor(doc), bytes);
+  }
+  const blob = await zip.generateAsync({ type:'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFilePart(studentNameValue())} - Documents.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('ZIP downloaded');
+}
+
+/* ---------------- Wiring ---------------- */
+document.getElementById('chooseFilesBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  handleFiles(e.target.files);
+  e.target.value = '';
+});
+document.getElementById('newDocBtn').addEventListener('click', createNewDocument);
+document.getElementById('addMoreBtn').addEventListener('click', ()=>{
+  document.getElementById('addPagesInput').dataset.targetDoc = selectedDocId;
+  document.getElementById('addPagesInput').click();
+});
+document.getElementById('deleteDocBtn').addEventListener('click', ()=>{
+  if(selectedDocId) deleteDocument(selectedDocId);
+});
+document.getElementById('addPagesInput').addEventListener('change', (e)=>{
+  const targetDoc = e.target.dataset.targetDoc;
+  handleFiles(e.target.files, targetDoc);
+  e.target.value = '';
+});
+document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelected);
+document.getElementById('downloadZipBtn').addEventListener('click', downloadAllZip);
+document.getElementById('studentName').addEventListener('input', ()=>{ renderDocList(); renderWorkspace(); renderDownloadBar(); });
+
+/* Drag and drop onto dropzone / whole workspace */
+const dz = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(evt=>{
+  dz.addEventListener(evt, (e)=>{ e.preventDefault(); dz.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt=>{
+  dz.addEventListener(evt, (e)=>{ e.preventDefault(); dz.classList.remove('drag'); });
+});
+dz.addEventListener('drop', (e)=>{
+  if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+render();
+</script>
+</body>
+</html>
