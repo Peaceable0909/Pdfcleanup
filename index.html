@@ -5,24 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Intake — Student Document Organizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
-    --paper: #F7F3E8;
-    --paper-dim: #EFE8D6;
-    --ink: #22281F;
-    --ink-soft: #5B5A4B;
-    --tan: #D9C6A0;
-    --tan-dark: #B79E6E;
-    --rule: rgba(34,40,31,0.16);
-    --stamp: #A8442B;
-    --stamp-dim: #C97258;
-    --sage: #5D7A56;
-    --sage-dim: #E4EADF;
-    --paper-white: #FCFAF3;
+    --paper: #F4F6FA;
+    --paper-dim: #EEF1F6;
+    --ink: #1F2430;
+    --ink-soft: #667085;
+    --tan: #E4EBFC;
+    --tan-dark: #C6D6F5;
+    --rule: #E4E7EC;
+    --stamp: #2F63E8;
+    --stamp-dim: #6690F5;
+    --sage: #16A34A;
+    --sage-dim: #E8F7EE;
+    --paper-white: #FFFFFF;
+    --navy: #0B2545;
+    --navy-dark: #081B33;
   }
   *{ box-sizing: border-box; }
   html,body{ margin:0; padding:0; }
@@ -40,38 +44,43 @@
 
   /* ---------- Header ---------- */
   header.top{
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap:24px; padding:22px 28px 16px 28px;
-    border-bottom: 1px solid var(--rule);
-    background: var(--paper);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:24px; padding:16px 28px;
+    background: linear-gradient(180deg, var(--navy), var(--navy-dark));
     flex-wrap: wrap;
   }
-  .brand{ display:flex; flex-direction:column; gap:2px; }
-  .brand .mark{
-    font-family:'Source Serif 4', serif; font-weight:600; font-size:22px;
-    letter-spacing: -0.01em;
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .brand-icon{
+    width:36px; height:36px; border-radius:8px; background: rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;
   }
-  .brand .sub{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); }
+  .brand .brand-icon svg{ width:18px; height:18px; }
+  .brand .brand-text{ display:flex; flex-direction:column; gap:1px; }
+  .brand .mark{
+    font-family:'Inter', sans-serif; font-weight:700; font-size:17px; letter-spacing: 0.01em;
+    color:#fff; text-transform:uppercase;
+  }
+  .brand .sub{ font-family:'Inter', sans-serif; font-size:12px; color: rgba(255,255,255,0.65); }
 
   .student-field{
     display:flex; align-items:baseline; gap:10px;
-    border-bottom: 2px solid var(--tan-dark);
+    border-bottom: 2px solid rgba(255,255,255,0.25);
     padding: 4px 2px 8px 2px;
     min-width: 260px;
   }
   .student-field label{
-    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-soft);
+    font-family:'Inter', sans-serif; font-size:11px; color: rgba(255,255,255,0.65);
     white-space:nowrap;
   }
   .student-field input{
     border:none; background:transparent; outline:none;
-    font-family:'Source Serif 4', serif; font-size:19px; color:var(--ink);
+    font-family:'Inter', sans-serif; font-size:16px; font-weight:500; color:#fff;
     width: 100%;
   }
-  .student-field input::placeholder{ color: var(--tan-dark); font-family:'Inter',sans-serif; font-style:italic; }
+  .student-field input::placeholder{ color: rgba(255,255,255,0.45); font-family:'Inter',sans-serif; font-style:italic; }
 
-  .stats{ display:flex; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color: var(--ink-soft); }
-  .stats b{ color: var(--ink); font-weight:600; }
+  .stats{ display:flex; gap:22px; font-family:'Inter', sans-serif; font-size:12px; color: rgba(255,255,255,0.7); }
+  .stats b{ color: #fff; font-weight:700; }
 
   /* ---------- Body layout ---------- */
   .body-grid{ display:flex; flex:1; min-height:0; }
@@ -89,12 +98,12 @@
     display:flex; align-items:center; justify-content:space-between;
   }
   .rail-head h2{
-    margin:0; font-family:'Source Serif 4', serif; font-weight:600; font-size:15px;
+    margin:0; font-family:'Inter', sans-serif; font-weight:600; font-size:15px;
   }
   .btn-add{
-    border:1px solid var(--tan-dark); background: var(--paper-white); color: var(--ink);
-    font-family:'Inter',sans-serif; font-size:12px; padding:5px 10px;
-    border-radius:3px; cursor:pointer;
+    border:1px solid var(--stamp); background: var(--paper-white); color: var(--stamp);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:12px; padding:6px 12px;
+    border-radius:7px; cursor:pointer;
   }
   .btn-add:hover{ background: var(--tan); }
 
@@ -103,29 +112,33 @@
     position:relative;
     background: var(--paper-white);
     border: 1px solid var(--rule);
-    border-left: 4px solid var(--tan-dark);
-    border-radius: 2px;
+    border-left: 3px solid var(--tan-dark);
+    border-radius: 8px;
     padding: 10px 12px 10px 12px;
     margin-bottom: 8px;
     cursor:pointer;
+    transition: background .12s ease, border-color .12s ease;
   }
+  .doc-tab:hover{ border-color: var(--stamp-dim); }
   .doc-tab.active{
+    background: var(--tan);
+    border-color: var(--stamp);
     border-left-color: var(--stamp);
-    box-shadow: 0 1px 0 var(--rule);
+    box-shadow: 0 1px 3px rgba(47,99,232,0.15);
   }
   .doc-tab .row1{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .doc-tab input.doc-type{
     border:none; background:transparent; outline:none;
-    font-family:'Source Serif 4', serif; font-weight:600; font-size:14.5px; color:var(--ink);
+    font-family:'Inter', sans-serif; font-weight:600; font-size:14.5px; color:var(--ink);
     width: 100%; padding:0;
   }
   .doc-tab .meta{
     margin-top:4px;
-    font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--ink-soft);
+    font-family:'Inter', sans-serif; font-size:10.5px; color: var(--ink-soft);
     display:flex; align-items:center; gap:8px;
   }
   .doc-tab .filename-preview{
-    margin-top:5px; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    margin-top:5px; font-family:'Inter', sans-serif; font-size:10.5px;
     color: var(--stamp); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
   .icon-btn{
@@ -146,7 +159,7 @@
   .dropzone{
     margin: 28px; padding: 46px 20px;
     border: 1.5px dashed var(--tan-dark);
-    border-radius: 4px;
+    border-radius: 10px;
     text-align:center;
     background: var(--paper-white);
     color: var(--ink-soft);
@@ -154,33 +167,43 @@
   }
   .dropzone.drag{ background: var(--sage-dim); border-color: var(--sage); }
   .dropzone h3{
-    margin: 0 0 6px 0; font-family:'Source Serif 4', serif; font-weight:600; font-size:19px; color: var(--ink);
+    margin: 0 0 6px 0; font-family:'Inter', sans-serif; font-weight:700; font-size:19px; color: var(--ink);
   }
   .dropzone p{ margin:0 0 16px 0; font-size:13px; }
-  .dropzone .accept{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--tan-dark); margin-top:14px; }
+  .dropzone .accept{ font-family:'Inter', sans-serif; font-size:11.5px; font-weight:600; color:var(--stamp); margin-top:14px; letter-spacing:0.02em; }
 
   .btn-primary{
     background: var(--stamp); color: var(--paper-white); border:none;
-    font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
-    padding: 9px 18px; border-radius:3px; cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    padding: 10px 18px; border-radius:8px; cursor:pointer;
+    box-shadow: 0 1px 2px rgba(47,99,232,0.3);
   }
-  .btn-primary:hover{ background:#8f3722; }
-  .btn-primary:disabled{ background: var(--tan-dark); cursor:not-allowed; }
+  .btn-primary:hover{ background:#2350C4; }
+  .btn-primary:disabled{ background: var(--tan-dark); cursor:not-allowed; box-shadow:none; }
 
   .btn-secondary{
-    background: transparent; color: var(--ink); border:1px solid var(--tan-dark);
-    font-family:'Inter',sans-serif; font-size:13px;
-    padding: 8px 16px; border-radius:3px; cursor:pointer;
+    background: var(--paper-white); color: var(--ink); border:1px solid var(--rule);
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:500;
+    padding: 9px 16px; border-radius:8px; cursor:pointer;
   }
-  .btn-secondary:hover{ background: var(--tan); }
+  .btn-secondary:hover{ background: var(--tan); border-color: var(--tan-dark); }
 
   .doc-toolbar{
     display:flex; align-items:center; justify-content:space-between;
     padding: 18px 28px 10px 28px; flex-wrap:wrap; gap:10px;
     border-bottom: 1px solid var(--rule);
   }
-  .doc-toolbar h2{ margin:0; font-family:'Source Serif 4', serif; font-size:18px; font-weight:600; }
-  .doc-toolbar .filename{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--stamp); margin-top:3px; }
+  .doc-toolbar h2{ margin:0; font-family:'Inter', sans-serif; font-size:18px; font-weight:600; }
+  .toolbar-title-row{ display:flex; align-items:center; gap:6px; }
+  .toolbar-title-input{
+    font-family:'Inter', sans-serif; font-size:19px; font-weight:700; color: var(--ink);
+    border:none; background:transparent; outline:none; border-bottom:1.5px solid transparent;
+    padding:2px 0; min-width: 140px;
+  }
+  .toolbar-title-input:hover{ border-bottom-color: var(--tan-dark); }
+  .toolbar-title-input:focus{ border-bottom-color: var(--stamp); }
+  #toolbarEditBtn{ color: var(--stamp); }
+  .doc-toolbar .filename{ font-family:'Inter', sans-serif; font-size:12px; color: var(--stamp); margin-top:3px; }
   .toolbar-actions{ display:flex; gap:8px; align-items:center; }
 
   .page-grid{
@@ -192,10 +215,11 @@
     width: 148px;
     background: var(--paper-white);
     border: 1px solid var(--rule);
-    border-radius: 3px;
+    border-radius: 10px;
     padding: 8px;
     cursor: grab;
     position: relative;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.06);
   }
   .page-card.dragging{ opacity:0.4; }
   .page-card .thumb-wrap{
@@ -209,7 +233,7 @@
   .page-card .thumb-wrap.rot270 img{ transform: rotate(270deg); max-width:none; max-height:100%; width:auto; }
   .page-card .idx{
     position:absolute; top:12px; left:12px; background: var(--ink); color: var(--paper-white);
-    font-family:'IBM Plex Mono', monospace; font-size:10px; padding:1px 5px; border-radius:2px;
+    font-family:'Inter', sans-serif; font-size:10px; padding:1px 5px; border-radius:2px;
     opacity:0.85;
   }
   .page-card .ctrl-row{ display:flex; align-items:center; justify-content:space-between; }
@@ -219,7 +243,7 @@
   }
 
   .add-page-card{
-    width:148px; height: 208px; border: 1.5px dashed var(--tan-dark); border-radius:3px;
+    width:148px; height: 208px; border: 1.5px dashed var(--tan-dark); border-radius:10px;
     display:flex; align-items:center; justify-content:center; color: var(--ink-soft);
     font-size:12px; text-align:center; cursor:pointer; background: var(--paper-dim);
   }
@@ -233,11 +257,12 @@
   /* ----- Footer: download bar ----- */
   footer.download-bar{
     border-top: 1px solid var(--rule);
-    background: var(--paper-dim);
-    padding: 14px 28px;
+    background: var(--paper-white);
+    padding: 16px 28px;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    box-shadow: 0 -1px 3px rgba(16,24,40,0.04);
   }
-  .download-list{ display:flex; flex-wrap:wrap; gap:10px 18px; font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .download-list{ display:flex; flex-wrap:wrap; gap:10px 18px; font-family:'Inter', sans-serif; font-size:12px; }
   .download-list label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
   .download-actions{ display:flex; gap:10px; }
 
@@ -251,7 +276,7 @@
   .lightbox img{ max-width:82vw; max-height:70vh; background:#fff; box-shadow:0 4px 30px rgba(0,0,0,.5); }
   .lightbox .lb-controls{
     margin-top:16px; display:flex; align-items:center; gap:14px;
-    color: var(--paper-white); font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    color: var(--paper-white); font-family:'Inter', sans-serif; font-size:12.5px;
   }
   .lightbox .lb-controls button{
     background: transparent; border:1px solid var(--tan); color: var(--paper-white);
@@ -266,17 +291,86 @@
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background: var(--ink); color: var(--paper-white); padding:10px 18px;
-    border-radius:4px; font-size:13px; z-index:100; opacity:0; pointer-events:none;
-    transition: opacity .2s ease;
+    border-radius:8px; font-size:13px; z-index:100; opacity:0; pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    max-width: 80vw; text-align:center; box-shadow: 0 4px 16px rgba(16,24,40,0.25);
   }
   .toast.show{ opacity:1; }
+  .toast.error{ background: #B42318; }
+  .toast.success{ background: #16A34A; }
 
   input[type=checkbox]{ accent-color: var(--stamp); width:14px; height:14px; }
+
+  /* ---------- Global loading overlay ---------- */
+  .loading-overlay{
+    position:fixed; inset:0; background: rgba(11,37,69,0.35); backdrop-filter: blur(1px);
+    display:none; align-items:center; justify-content:center; z-index: 200;
+  }
+  .loading-overlay.show{ display:flex; }
+  .loading-card{
+    background: var(--paper-white); border-radius:12px; padding: 26px 34px;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    box-shadow: 0 12px 40px rgba(11,37,69,0.25); min-width:220px;
+  }
+  .spinner{
+    width:32px; height:32px; border-radius:50%;
+    border: 3px solid var(--rule); border-top-color: var(--stamp);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .loading-card .loading-text{ font-family:'Inter',sans-serif; font-size:13.5px; color: var(--ink); font-weight:500; text-align:center; }
+
+  /* ---------- Fatal startup error screen ---------- */
+  .fatal-error{
+    position:fixed; inset:0; background: var(--paper); z-index: 500;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .fatal-error.show{ display:flex; }
+  .fatal-error .fatal-card{
+    background: var(--paper-white); border:1px solid var(--rule); border-radius:12px;
+    padding: 32px 36px; max-width: 460px; text-align:center;
+    box-shadow: 0 12px 40px rgba(16,24,40,0.12);
+  }
+  .fatal-error .fatal-icon{
+    width:48px; height:48px; border-radius:50%; background:#FEF3F2; color:#B42318;
+    display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;
+  }
+  .fatal-error h2{ margin:0 0 8px 0; font-family:'Inter',sans-serif; font-size:17px; color: var(--ink); }
+  .fatal-error p{ margin:0 0 20px 0; font-size:13.5px; color: var(--ink-soft); line-height:1.5; }
+
+  /* ---------- Upload issues panel ---------- */
+  .upload-issues{
+    margin: 0 28px; padding: 12px 16px; border-radius:10px;
+    background: #FEF3F2; border: 1px solid #FDA29B;
+    display:none; flex-direction:column; gap:8px;
+  }
+  .upload-issues.show{ display:flex; margin-top:16px; }
+  .upload-issues .ui-head{ display:flex; align-items:center; justify-content:space-between; }
+  .upload-issues .ui-title{ font-family:'Inter',sans-serif; font-weight:700; font-size:13px; color:#B42318; display:flex; align-items:center; gap:6px; }
+  .upload-issues .ui-dismiss{ background:none; border:none; color:#B42318; cursor:pointer; font-size:12px; font-family:'Inter',sans-serif; font-weight:600; }
+  .upload-issues ul{ margin:0; padding-left:18px; }
+  .upload-issues li{ font-size:12.5px; color:#7A271A; margin-bottom:2px; }
 
   @media (max-width: 760px){
     .body-grid{ flex-direction:column; }
     .rail{ width:100%; border-right:none; border-bottom:1px solid var(--rule); max-height:260px; }
   }
+  /* ---------- Hidden docx render surface (used to rasterize .docx into page images) ---------- */
+  .docx-render-surface{
+    position: fixed; top: -99999px; left: -99999px;
+    width: 816px; background:#fff; color:#111;
+    font-family: 'Georgia', 'Inter', sans-serif; font-size: 15px; line-height: 1.5;
+    padding: 72px 72px; box-sizing: border-box;
+  }
+  .docx-render-surface h1{ font-size: 24px; margin: 0 0 14px; }
+  .docx-render-surface h2{ font-size: 20px; margin: 18px 0 10px; }
+  .docx-render-surface h3{ font-size: 17px; margin: 16px 0 8px; }
+  .docx-render-surface p{ margin: 0 0 10px; }
+  .docx-render-surface table{ border-collapse: collapse; width:100%; margin: 0 0 12px; }
+  .docx-render-surface td, .docx-render-surface th{ border: 1px solid #999; padding: 5px 8px; font-size: 13px; }
+  .docx-render-surface ul, .docx-render-surface ol{ margin: 0 0 10px; padding-left: 24px; }
+  .docx-render-surface img{ max-width: 100%; }
+  .docx-render-surface strong{ font-weight: 700; }
 </style>
 </head>
 <body>
@@ -285,8 +379,13 @@
 
   <header class="top">
     <div class="brand">
-      <div class="mark">Intake</div>
-      <div class="sub">student document organizer</div>
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h6M9 16h6M9 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="mark">Student Document Organizer</div>
+        <div class="sub">Upload, organize, convert & export documents</div>
+      </div>
     </div>
     <div class="student-field">
       <label for="studentName">Student</label>
@@ -312,17 +411,33 @@
     </aside>
 
     <main class="workspace">
+      <div class="upload-issues" id="uploadIssues">
+        <div class="ui-head">
+          <div class="ui-title">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M9 6v4M9 12.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="9" r="7.3" stroke="currentColor" stroke-width="1.4"/></svg>
+            <span id="uploadIssuesTitle">Some files couldn't be processed</span>
+          </div>
+          <button class="ui-dismiss" id="uploadIssuesDismiss" type="button">Dismiss</button>
+        </div>
+        <ul id="uploadIssuesList"></ul>
+      </div>
+
       <div class="dropzone" id="dropzone">
         <h3>Drop the student's files here</h3>
         <p>Passports, transcripts, scanned pages, bank statements — mix of PDFs and photos is fine.</p>
         <button class="btn-primary" id="chooseFilesBtn" type="button">Choose files</button>
-        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
-        <div class="accept">PDF · JPG · PNG — Word files aren't converted yet, save those as PDF first</div>
+        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none" />
+        <div class="accept">PDF · JPG · PNG · DOCX</div>
       </div>
 
       <div class="doc-toolbar" id="docToolbar" style="display:none">
         <div>
-          <h2 id="toolbarTitle">—</h2>
+          <div class="toolbar-title-row">
+            <input id="toolbarTitleInput" class="toolbar-title-input" placeholder="Document type" />
+            <button class="icon-btn" id="toolbarEditBtn" type="button" title="Edit document type">
+              <svg viewBox="0 0 18 18"><path d="M12.5 2.5 15.5 5.5 6 15H3v-3L12.5 2.5Z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div class="filename" id="toolbarFilename"></div>
         </div>
         <div class="toolbar-actions">
@@ -345,7 +460,7 @@
   </footer>
 </div>
 
-<input type="file" id="addPagesInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
+<input type="file" id="addPagesInput" multiple accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none" />
 
 <div class="lightbox" id="lightbox">
   <button class="lb-close" id="lbClose" type="button">&times;</button>
@@ -360,9 +475,60 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Working…</div>
+  </div>
+</div>
+
+<div class="fatal-error" id="fatalError">
+  <div class="fatal-card">
+    <div class="fatal-icon">
+      <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><path d="M9 6v4M9 12.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="9" r="7.3" stroke="currentColor" stroke-width="1.5"/></svg>
+    </div>
+    <h2>Couldn't load the app</h2>
+    <p id="fatalErrorText">A required component failed to load, likely due to a network or connection issue. Check your internet connection and try again.</p>
+    <button class="btn-primary" id="fatalReloadBtn" type="button" onclick="location.reload()">Reload page</button>
+  </div>
+</div>
+
 <script>
+/* ---------------- Startup library check ---------------- */
+function requiredLibsMissing(){
+  const missing = [];
+  if(typeof pdfjsLib === 'undefined') missing.push('PDF.js');
+  if(typeof PDFLib === 'undefined') missing.push('pdf-lib');
+  if(typeof JSZip === 'undefined') missing.push('JSZip');
+  if(typeof mammoth === 'undefined') missing.push('Mammoth');
+  if(typeof html2canvas === 'undefined') missing.push('html2canvas');
+  return missing;
+}
+const _missingLibs = requiredLibsMissing();
+if(_missingLibs.length){
+  document.getElementById('fatalErrorText').textContent =
+    `These couldn't load: ${_missingLibs.join(', ')}. This is usually a network or ad-blocker issue. Check your connection and reload.`;
+  document.getElementById('fatalError').classList.add('show');
+  throw new Error('Required libraries failed to load: ' + _missingLibs.join(', '));
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const { PDFDocument, degrees } = PDFLib;
+
+/* ---------------- Loading overlay ---------------- */
+let loadingDepth = 0;
+function showLoading(msg){
+  loadingDepth++;
+  document.getElementById('loadingText').textContent = msg || 'Working…';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function updateLoading(msg){
+  document.getElementById('loadingText').textContent = msg || 'Working…';
+}
+function hideLoading(){
+  loadingDepth = Math.max(0, loadingDepth - 1);
+  if(loadingDepth === 0) document.getElementById('loadingOverlay').classList.remove('show');
+}
 
 /* ---------------- State ---------------- */
 // fileStore: fileId -> { kind: 'pdf'|'image', name, arrayBuffer (pdf), pdfjsDoc, pdfLibDoc, dataUrl (image), mime }
@@ -399,32 +565,66 @@ function cleanBaseName(filename){
 
 /* ---------------- Toast ---------------- */
 let toastTimer = null;
-function showToast(msg){
+function showToast(msg, type){
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.classList.add('show');
+  el.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), type==='error' ? 4200 : 2600);
 }
+
+/* ---------------- Upload issues panel ---------------- */
+let uploadIssues = [];
+function addUploadIssue(filename, reason){
+  uploadIssues.push({ filename, reason });
+  renderUploadIssues();
+}
+function renderUploadIssues(){
+  const panel = document.getElementById('uploadIssues');
+  const list = document.getElementById('uploadIssuesList');
+  if(uploadIssues.length === 0){
+    panel.classList.remove('show');
+    list.innerHTML = '';
+    return;
+  }
+  document.getElementById('uploadIssuesTitle').textContent =
+    uploadIssues.length === 1 ? "1 file couldn't be processed" : `${uploadIssues.length} files couldn't be processed`;
+  list.innerHTML = uploadIssues.map(i => `<li><strong>${escapeHtml(i.filename)}</strong> — ${escapeHtml(i.reason)}</li>`).join('');
+  panel.classList.add('show');
+}
+document.getElementById('uploadIssuesDismiss').addEventListener('click', ()=>{
+  uploadIssues = [];
+  renderUploadIssues();
+});
 
 /* ---------------- File ingestion ---------------- */
 async function handleFiles(fileList, targetDocId){
   const files = Array.from(fileList);
+  if(files.length === 0) return;
+  showLoading(files.length === 1 ? `Reading "${files[0].name}"…` : `Reading ${files.length} files…`);
   for(const file of files){
     const ext = file.name.split('.').pop().toLowerCase();
     try{
       if(ext === 'pdf'){
+        updateLoading(`Reading "${file.name}"…`);
         await ingestPdf(file, targetDocId);
       } else if(['jpg','jpeg','png'].includes(ext)){
+        updateLoading(`Reading "${file.name}"…`);
         await ingestImage(file, targetDocId);
+      } else if(ext === 'docx'){
+        updateLoading(`Converting "${file.name}"…`);
+        await ingestDocx(file, targetDocId);
+      } else if(ext === 'doc'){
+        addUploadIssue(file.name, 'old .doc format — save as .docx and re-upload');
       } else {
-        showToast(`Skipped "${file.name}" — unsupported format for now`);
+        addUploadIssue(file.name, `unsupported file type ".${ext}"`);
       }
     } catch(err){
       console.error(err);
-      showToast(`Couldn't read "${file.name}"`);
+      addUploadIssue(file.name, (err && err.message) || 'could not be read — the file may be corrupted or unreadable');
     }
   }
+  hideLoading();
   render();
 }
 
@@ -476,6 +676,63 @@ async function ingestImage(file, targetDocId){
     if(!selectedDocId) selectedDocId = doc.id;
   }
   doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl });
+}
+
+const DOCX_PAGE_W = 816;   // 8.5in @ 96dpi
+const DOCX_PAGE_H = 1056;  // 11in @ 96dpi
+
+async function ingestDocx(file, targetDocId){
+  const arrayBuffer = await file.arrayBuffer();
+
+  let html;
+  try{
+    const result = await mammoth.convertToHtml({ arrayBuffer });
+    html = result.value || '<p><em>(empty document)</em></p>';
+  } catch(err){
+    console.error(err);
+    throw new Error('not a valid .docx file');
+  }
+
+  // Render into an offscreen surface so we can measure & rasterize it.
+  const surface = document.createElement('div');
+  surface.className = 'docx-render-surface';
+  surface.innerHTML = html;
+  document.body.appendChild(surface);
+
+  // Let images inside the docx (if any) finish loading before we rasterize.
+  const imgs = Array.from(surface.querySelectorAll('img'));
+  await Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res=>{ img.onload = img.onerror = res; })));
+
+  let fullCanvas;
+  try{
+    fullCanvas = await html2canvas(surface, { scale: 1, width: DOCX_PAGE_W, backgroundColor: '#ffffff' });
+  } finally {
+    surface.remove();
+  }
+
+  let doc = targetDocId ? documents.find(d=>d.id===targetDocId) : null;
+  if(!doc){
+    doc = { id: uid('doc'), docType: guessDocType(file.name), pages: [], sourceName:file.name };
+    documents.push(doc);
+    if(!selectedDocId) selectedDocId = doc.id;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(fullCanvas.height / DOCX_PAGE_H));
+  for(let i=0; i<totalPages; i++){
+    const sliceH = Math.min(DOCX_PAGE_H, fullCanvas.height - i*DOCX_PAGE_H);
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = DOCX_PAGE_W;
+    pageCanvas.height = sliceH;
+    const ctx = pageCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,DOCX_PAGE_W,sliceH);
+    ctx.drawImage(fullCanvas, 0, i*DOCX_PAGE_H, DOCX_PAGE_W, sliceH, 0, 0, DOCX_PAGE_W, sliceH);
+    const dataUrl = pageCanvas.toDataURL('image/png');
+
+    const fileId = uid('file');
+    fileStore[fileId] = { kind:'image', name: `${file.name} (p${i+1})`, dataUrl, mime:'image/png' };
+    doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl });
+  }
 }
 
 /* ---------------- Document / page operations ---------------- */
@@ -625,7 +882,8 @@ function renderWorkspace(){
   toolbar.style.display='flex';
   grid.style.display='flex';
 
-  document.getElementById('toolbarTitle').textContent = doc.docType || 'Untitled Document';
+  const titleInput = document.getElementById('toolbarTitleInput');
+  if(document.activeElement !== titleInput) titleInput.value = doc.docType || '';
   document.getElementById('toolbarFilename').textContent = filenameFor(doc);
 
   grid.innerHTML = '';
@@ -815,33 +1073,53 @@ async function downloadDoc(doc){
 
 async function downloadSelected(){
   const checks = Array.from(document.querySelectorAll('.dl-check:checked'));
-  if(checks.length===0){ showToast('Select at least one document'); return; }
-  showToast('Building PDFs…');
-  for(const chk of checks){
-    const doc = documents.find(d=>d.id===chk.dataset.doc);
-    if(doc) await downloadDoc(doc);
+  if(checks.length===0){ showToast('Select at least one document', 'error'); return; }
+  showLoading('Building PDFs…');
+  try{
+    for(let i=0; i<checks.length; i++){
+      const doc = documents.find(d=>d.id===checks[i].dataset.doc);
+      if(doc){
+        updateLoading(`Building "${filenameFor(doc)}" (${i+1}/${checks.length})…`);
+        await downloadDoc(doc);
+      }
+    }
+    hideLoading();
+    showToast('Downloaded', 'success');
+  } catch(err){
+    console.error(err);
+    hideLoading();
+    showToast("Couldn't build one or more PDFs — see console for details", 'error');
   }
-  showToast('Downloaded');
 }
 
 async function downloadAllZip(){
-  if(documents.length===0){ showToast('Nothing to download yet'); return; }
-  showToast('Packing ZIP…');
-  const zip = new JSZip();
-  for(const doc of documents){
-    const bytes = await buildPdfForDocumentSafe(doc);
-    zip.file(filenameFor(doc), bytes);
+  if(documents.length===0){ showToast('Nothing to download yet', 'error'); return; }
+  showLoading('Packing ZIP…');
+  try{
+    const zip = new JSZip();
+    for(let i=0; i<documents.length; i++){
+      const doc = documents[i];
+      updateLoading(`Adding "${filenameFor(doc)}" (${i+1}/${documents.length})…`);
+      const bytes = await buildPdfForDocumentSafe(doc);
+      zip.file(filenameFor(doc), bytes);
+    }
+    updateLoading('Compressing ZIP…');
+    const blob = await zip.generateAsync({ type:'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${sanitizeFilePart(studentNameValue())} - Documents.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    hideLoading();
+    showToast('ZIP downloaded', 'success');
+  } catch(err){
+    console.error(err);
+    hideLoading();
+    showToast("Couldn't build the ZIP — see console for details", 'error');
   }
-  const blob = await zip.generateAsync({ type:'blob' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${sanitizeFilePart(studentNameValue())} - Documents.zip`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  showToast('ZIP downloaded');
 }
 
 /* ---------------- Wiring ---------------- */
@@ -866,6 +1144,19 @@ document.getElementById('addPagesInput').addEventListener('change', (e)=>{
 document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelected);
 document.getElementById('downloadZipBtn').addEventListener('click', downloadAllZip);
 document.getElementById('studentName').addEventListener('input', ()=>{ renderDocList(); renderWorkspace(); renderDownloadBar(); });
+document.getElementById('toolbarTitleInput').addEventListener('input', (e)=>{
+  const doc = documents.find(d=>d.id===selectedDocId);
+  if(!doc) return;
+  doc.docType = e.target.value;
+  document.getElementById('toolbarFilename').textContent = filenameFor(doc);
+  renderDocList();
+  renderDownloadBar();
+});
+document.getElementById('toolbarEditBtn').addEventListener('click', ()=>{
+  const el = document.getElementById('toolbarTitleInput');
+  el.focus();
+  el.select();
+});
 
 /* Drag and drop onto dropzone / whole workspace */
 const dz = document.getElementById('dropzone');
