@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root{
     --paper: #F4F6FA;
@@ -106,6 +107,7 @@
     border-radius:7px; cursor:pointer;
   }
   .btn-add:hover{ background: var(--tan); }
+  .btn-add:disabled{ opacity:0.5; cursor:not-allowed; }
 
   .doc-list{ overflow-y:auto; padding: 4px 12px 16px 12px; flex:1; }
   .doc-tab{
@@ -147,6 +149,7 @@
     color: var(--ink-soft); border-radius:3px;
   }
   .icon-btn:hover{ background: var(--tan); color: var(--ink); }
+  .icon-btn:disabled{ opacity:0.4; cursor:not-allowed; background:none; }
   .icon-btn svg{ width:14px; height:14px; display:block; }
 
   .empty-rail{
@@ -403,7 +406,10 @@
     <aside class="rail">
       <div class="rail-head">
         <h2>Documents</h2>
-        <button class="btn-add" id="newDocBtn" type="button">New document</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-add" id="autoDetectAllBtn" type="button" title="Run OCR auto-detect on every document">Auto-name all</button>
+          <button class="btn-add" id="newDocBtn" type="button">New document</button>
+        </div>
       </div>
       <div class="doc-list" id="docList">
         <div class="empty-rail">Upload files to start a document set.</div>
@@ -436,6 +442,9 @@
             <input id="toolbarTitleInput" class="toolbar-title-input" placeholder="Document type" />
             <button class="icon-btn" id="toolbarEditBtn" type="button" title="Edit document type">
               <svg viewBox="0 0 18 18"><path d="M12.5 2.5 15.5 5.5 6 15H3v-3L12.5 2.5Z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="icon-btn" id="autoDetectBtn" type="button" title="Auto-detect document type from page text (OCR)">
+              <svg viewBox="0 0 18 18"><path d="M4 14 12.5 5.5m0 0 1.7-1.7m-1.7 1.7 1.7 1.7M4 3v2.4M2.8 4.2h2.4M14.6 10.6V13M13.4 11.8h2.4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
           <div class="filename" id="toolbarFilename"></div>
@@ -502,6 +511,7 @@ function requiredLibsMissing(){
   if(typeof JSZip === 'undefined') missing.push('JSZip');
   if(typeof mammoth === 'undefined') missing.push('Mammoth');
   if(typeof html2canvas === 'undefined') missing.push('html2canvas');
+  if(typeof Tesseract === 'undefined') missing.push('Tesseract.js');
   return missing;
 }
 const _missingLibs = requiredLibsMissing();
@@ -557,6 +567,69 @@ function guessDocType(filename){
     if(lower.includes(key)) return label;
   }
   return 'Other Document';
+}
+
+// Richer phrase sets for classifying OCR'd page *content*, ordered so more
+// specific/high-confidence phrases are checked first. Each doc type scores
+// on number of phrase hits; highest score above threshold wins.
+const CONTENT_TYPE_PHRASES = [
+  ['Passport', ['passport', 'republic of', 'nationality', 'date of birth', 'place of birth', 'passport no', 'type/type', 'holder\'s signature']],
+  ['Visa', ['visa', 'entry permit', 'multiple entry', 'single entry', 'consulate', 'immigration']],
+  ['Transcript', ['transcript', 'official transcript', 'grade point', 'gpa', 'semester', 'course title', 'credit hours', 'academic record']],
+  ['Certificate', ['certificate', 'this is to certify', 'diploma', 'awarded to', 'in recognition of', 'has successfully completed']],
+  ['Admission Letter', ['admission', 'offer of admission', 'letter of acceptance', 'congratulations', 'you have been offered', 'enrollment']],
+  ['Bank Statement', ['statement of account', 'account number', 'opening balance', 'closing balance', 'sort code', 'iban', 'swift', 'account summary', 'bank statement']],
+  ['Affidavit', ['affidavit', 'sworn', 'deposes and says', 'notary', 'commissioner for oaths']],
+  ['ID Card', ['national identity', 'identity card', 'national id', 'id number']],
+];
+
+function classifyContentText(text){
+  const lower = (text || '').toLowerCase();
+  if(!lower.trim()) return null;
+  let best = null, bestScore = 0;
+  for(const [label, phrases] of CONTENT_TYPE_PHRASES){
+    const score = phrases.reduce((n, p) => n + (lower.includes(p) ? 1 : 0), 0);
+    if(score > bestScore){ bestScore = score; best = label; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+/* ---------------- OCR-based auto-detect ---------------- */
+async function getOcrImageForDoc(doc){
+  if(!doc.pages.length) return null;
+  const pg = doc.pages[0];
+  const fileEntry = fileStore[pg.fileId];
+  if(!fileEntry) return null;
+  if(fileEntry.kind === 'pdf'){
+    // Re-render at higher resolution than the thumbnail for better OCR accuracy.
+    return renderPdfPageThumb(fileEntry.pdfjsDoc, pg.pageNum, 1.6);
+  }
+  return fileEntry.dataUrl; // image (or docx-rasterized page) — already full resolution
+}
+
+async function autoDetectDocType(docId){
+  const doc = documents.find(d=>d.id===docId);
+  if(!doc){ return; }
+  const image = await getOcrImageForDoc(doc);
+  if(!image){ showToast("This document has no pages to scan", 'error'); return; }
+
+  showLoading('Reading document text (OCR)…');
+  try{
+    const { data } = await Tesseract.recognize(image, 'eng');
+    const label = classifyContentText(data.text);
+    hideLoading();
+    if(label){
+      doc.docType = label;
+      render();
+      showToast(`Detected: ${label}`, 'success');
+    } else {
+      showToast("Couldn't confidently identify this document — please set the type manually", 'error');
+    }
+  } catch(err){
+    console.error(err);
+    hideLoading();
+    showToast('OCR failed — check your connection and try again', 'error');
+  }
 }
 
 function cleanBaseName(filename){
@@ -1156,6 +1229,38 @@ document.getElementById('toolbarEditBtn').addEventListener('click', ()=>{
   const el = document.getElementById('toolbarTitleInput');
   el.focus();
   el.select();
+});
+async function autoDetectAllDocs(){
+  if(documents.length === 0){ showToast('No documents to scan yet', 'error'); return; }
+  let detected = 0, skipped = 0;
+  showLoading(`Scanning documents (0/${documents.length})…`);
+  for(let i=0; i<documents.length; i++){
+    const doc = documents[i];
+    updateLoading(`Scanning "${doc.docType || 'document'}" (${i+1}/${documents.length})…`);
+    try{
+      const image = await getOcrImageForDoc(doc);
+      if(!image){ skipped++; continue; }
+      const { data } = await Tesseract.recognize(image, 'eng');
+      const label = classifyContentText(data.text);
+      if(label){ doc.docType = label; detected++; } else { skipped++; }
+    } catch(err){
+      console.error(err);
+      skipped++;
+    }
+  }
+  hideLoading();
+  render();
+  showToast(`Detected ${detected} of ${documents.length} document${documents.length===1?'':'s'}${skipped ? ` — ${skipped} left unchanged` : ''}`, detected>0 ? 'success' : 'error');
+}
+
+document.getElementById('autoDetectAllBtn').addEventListener('click', (e)=>{
+  e.currentTarget.disabled = true;
+  autoDetectAllDocs().finally(()=>{ e.currentTarget.disabled = false; });
+});
+document.getElementById('autoDetectBtn').addEventListener('click', (e)=>{
+  if(!selectedDocId) return;
+  e.currentTarget.disabled = true;
+  autoDetectDocType(selectedDocId).finally(()=>{ e.currentTarget.disabled = false; });
 });
 
 /* Drag and drop onto dropzone / whole workspace */
