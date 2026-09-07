@@ -242,6 +242,56 @@
   .final p{ color: var(--muted); max-width:480px; margin:0 auto 34px; font-size:16px; }
 
   footer{ background: var(--ink-2); color: rgba(255,255,255,0.5); padding:32px 24px; text-align:center; font-size:13px; }
+
+  /* ---------------- Page transition overlay (landing -> app) ---------------- */
+  .transition-overlay{
+    position:fixed; inset:0; z-index:1000;
+    background: radial-gradient(ellipse 120% 80% at 50% -10%, #123064, var(--ink-2) 70%);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    opacity:0; pointer-events:none; transition: opacity .35s ease;
+  }
+  .transition-overlay.show{ opacity:1; pointer-events:all; }
+
+  .to-stage{ position:relative; width:96px; height:96px; margin-bottom:22px; }
+  .to-doc{
+    position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
+    width:56px; height:70px; background:#fff; border-radius:7px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+    animation: toDocSettle .9s ease forwards;
+  }
+  .to-doc::before, .to-doc::after{
+    content:''; position:absolute; left:10px; height:3.5px; border-radius:2px; background: var(--paper-2);
+  }
+  .to-doc::before{ top:16px; width:36px; }
+  .to-doc::after{ top:25px; width:24px; }
+  @keyframes toDocSettle{
+    0%{ transform: translate(-50%,-50%) rotate(-14deg) scale(0.8); opacity:0; }
+    55%{ transform: translate(-50%,-50%) rotate(3deg) scale(1.04); opacity:1; }
+    100%{ transform: translate(-50%,-50%) rotate(0deg) scale(1); opacity:1; }
+  }
+  .to-ring{
+    position:absolute; inset:0; border-radius:50%;
+    border: 2.5px dashed rgba(102,144,245,0.5);
+    animation: toRingSpin 3s linear infinite;
+  }
+  @keyframes toRingSpin{ to{ transform: rotate(360deg); } }
+  .to-check{
+    position:absolute; left:50%; top:50%; transform: translate(-50%,-50%) scale(0);
+    width:30px; height:30px; border-radius:50%; background: var(--blue); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    animation: toCheckPop .35s ease forwards; animation-delay: .85s;
+  }
+  @keyframes toCheckPop{ to{ transform: translate(-50%,-50%) scale(1); } }
+
+  .to-text{ color:#fff; font-family:'Inter',sans-serif; font-weight:600; font-size:15px; }
+  .to-flavor{ color: rgba(255,255,255,0.55); font-family:'Inter',sans-serif; font-size:12.5px; margin-top:6px; }
+  .to-bar{ width:160px; height:4px; border-radius:3px; background: rgba(255,255,255,0.12); overflow:hidden; margin-top:18px; }
+  .to-bar::after{
+    content:''; display:block; height:100%; width:40%; border-radius:3px;
+    background: linear-gradient(90deg, var(--blue-2), var(--blue), var(--blue-2));
+    animation: toBarSlide 1s ease-in-out infinite;
+  }
+  @keyframes toBarSlide{ 0%{ margin-left:-40%; } 100%{ margin-left:100%; } }
   footer a{ color: rgba(255,255,255,0.75); text-decoration:none; }
   footer a:hover{ text-decoration:underline; }
 
@@ -274,7 +324,7 @@
     </div>
     Student Document Organizer
   </div>
-  <a class="nav-cta" href="app.html">Open the app</a>
+  <a class="nav-cta" href="index.html">Open the app</a>
 </nav>
 
 <section class="hero">
@@ -287,7 +337,7 @@
       <h1>Every scan, photo, and PDF a student sends you — <span class="accent">turned into one clean, labeled file.</span></h1>
       <p class="lede">Stop manually renaming "IMG_4471.jpg" at 11pm. Upload the pile, and get back correctly named, correctly ordered PDFs — passport, transcript, bank statement, all of it — ready to send.</p>
       <div class="hero-actions">
-        <a class="btn-hero-primary" href="app.html">
+        <a class="btn-hero-primary" href="index.html">
           Open the app
           <svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M4 9h10m0 0-4-4m4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
@@ -428,7 +478,7 @@
   <div class="wrap">
     <h2>Your next student folder could take five minutes, not an evening.</h2>
     <p>No install, no account, no cost.</p>
-    <a class="btn-hero-primary" href="app.html" style="background: linear-gradient(180deg, #3D6FEC, var(--blue)); box-shadow: 0 8px 24px rgba(47,99,232,0.3);">
+    <a class="btn-hero-primary" href="index.html" style="background: linear-gradient(180deg, #3D6FEC, var(--blue)); box-shadow: 0 8px 24px rgba(47,99,232,0.3);">
       Open the app
       <svg width="15" height="15" viewBox="0 0 18 18" fill="none"><path d="M4 9h10m0 0-4-4m4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
@@ -436,8 +486,21 @@
 </section>
 
 <footer>
-  Student Document Organizer — built for education consultants and admissions teams. <a href="app.html">Open the app →</a>
+  Student Document Organizer — built for education consultants and admissions teams. <a href="index.html">Open the app →</a>
 </footer>
+
+<div class="transition-overlay" id="transitionOverlay">
+  <div class="to-stage">
+    <div class="to-ring"></div>
+    <div class="to-doc"></div>
+    <div class="to-check">
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9.5 7.5 13 14 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+  <div class="to-text" id="toText">Opening the app…</div>
+  <div class="to-flavor" id="toFlavor">Setting up your workspace…</div>
+  <div class="to-bar"></div>
+</div>
 
 <script>
 /* ---------- Nav shrink on scroll ---------- */
@@ -544,6 +607,38 @@ function onScroll(){
 window.addEventListener('scroll', onScroll, { passive:true });
 window.addEventListener('resize', onScroll);
 onScroll();
+
+/* ---------- Transition overlay: plays before navigating to the app ---------- */
+const TRANSITION_FLAVORS = [
+  "Setting up your workspace…",
+  "Waking up the document tools…",
+  "Almost there…",
+];
+const overlay = document.getElementById('transitionOverlay');
+const flavorEl = document.getElementById('toFlavor');
+
+function playTransitionAndGo(href){
+  let i = 0;
+  flavorEl.textContent = TRANSITION_FLAVORS[0];
+  const flavorTimer = setInterval(()=>{
+    i = (i + 1) % TRANSITION_FLAVORS.length;
+    flavorEl.textContent = TRANSITION_FLAVORS[i];
+  }, 500);
+  overlay.classList.add('show');
+  setTimeout(()=>{
+    clearInterval(flavorTimer);
+    window.location.href = href;
+  }, 1150);
+}
+
+document.querySelectorAll('a[href="index.html"]').forEach(link=>{
+  link.addEventListener('click', (e)=>{
+    // Allow opening in a new tab/window as normal (middle-click, cmd/ctrl-click).
+    if(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    playTransitionAndGo(link.getAttribute('href'));
+  });
+});
 </script>
 
 </body>
