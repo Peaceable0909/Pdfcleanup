@@ -843,7 +843,10 @@ const CONTENT_MIN_SCORE = 3;
 const CONTENT_MIN_MARGIN = 2;
 
 function scoreContentText(text){
-  const lower = (text || '').toLowerCase();
+  // Collapse all whitespace (including OCR line breaks) to single spaces —
+  // a multi-word phrase like "opening balance" would otherwise never match
+  // if OCR happened to break the line between the two words.
+  const lower = (text || '').toLowerCase().replace(/\s+/g, ' ');
   const scores = {};
   if(!lower.trim()) return scores;
   for(const [label, phrases] of CONTENT_TYPE_PHRASES){
@@ -868,33 +871,70 @@ function classifyContentText(text){
 }
 
 /* ---------------- OCR-based auto-detect ---------------- */
-function toGrayscaleDataUrl(canvas){
-  // Simple contrast-boosted grayscale pass — meaningfully improves OCR
-  // accuracy on photographed/scanned documents vs. raw color input.
+
+// Otsu's method: finds the grayscale threshold that best separates a bimodal
+// image (text vs. background) instead of assuming a fixed midpoint — much
+// more reliable across scans/photos with different lighting and paper tone.
+function otsuThreshold(grayHistogram, total){
+  let sum = 0;
+  for(let i=0; i<256; i++) sum += i * grayHistogram[i];
+  let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 128;
+  for(let t=0; t<256; t++){
+    wB += grayHistogram[t];
+    if(wB === 0) continue;
+    wF = total - wB;
+    if(wF === 0) break;
+    sumB += t * grayHistogram[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if(between > maxVar){ maxVar = between; threshold = t; }
+  }
+  return threshold;
+}
+
+function preprocessForOcr(canvas){
   const ctx = canvas.getContext('2d');
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imgData.data;
-  for(let i=0; i<d.length; i+=4){
-    const gray = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-    const boosted = Math.max(0, Math.min(255, (gray - 128) * 1.3 + 128));
+  const n = d.length / 4;
+  const gray = new Uint8ClampedArray(n);
+  const hist = new Array(256).fill(0);
+  for(let i=0, p=0; i<d.length; i+=4, p++){
+    const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    gray[p] = g;
+    hist[Math.round(g)]++;
+  }
+  const threshold = otsuThreshold(hist, n);
+  // Contrast-stretch around the *computed* threshold (not a fixed 128) — this
+  // adapts to both very light and very dark scans, sharpening text against
+  // its actual background instead of guessing a generic midpoint.
+  for(let i=0, p=0; i<d.length; i+=4, p++){
+    const boosted = Math.max(0, Math.min(255, (gray[p] - threshold) * 1.6 + threshold));
     d[i] = d[i+1] = d[i+2] = boosted;
   }
   ctx.putImageData(imgData, 0, 0);
   return canvas.toDataURL('image/png');
 }
 
-async function dataUrlToGrayscale(dataUrl){
+const OCR_MIN_WIDTH = 1500; // Tesseract needs roughly 300dpi-equivalent text height to read reliably
+
+async function prepareImageForOcr(dataUrl){
   const img = await new Promise((res, rej)=>{
     const im = new Image();
     im.onload = () => res(im);
     im.onerror = rej;
     im.src = dataUrl;
   });
+  // Auto-upscale small/low-res photos (e.g. a phone photo saved small, or a
+  // low-DPI scan) — OCR accuracy drops sharply once text is only a few
+  // pixels tall, and this is a common cause of poor reads on phone photos.
+  const upscale = img.naturalWidth < OCR_MIN_WIDTH ? OCR_MIN_WIDTH / img.naturalWidth : 1;
   const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  canvas.getContext('2d').drawImage(img, 0, 0);
-  return toGrayscaleDataUrl(canvas);
+  canvas.width = Math.round(img.naturalWidth * upscale);
+  canvas.height = Math.round(img.naturalHeight * upscale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  return preprocessForOcr(canvas);
 }
 
 async function getOcrImagesForDoc(doc, maxPages){
@@ -911,7 +951,7 @@ async function getOcrImagesForDoc(doc, maxPages){
       raw = fileEntry.dataUrl; // image (or docx-rasterized page) — already full resolution
     }
     try{
-      images.push(await dataUrlToGrayscale(raw));
+      images.push(await prepareImageForOcr(raw));
     } catch(e){
       images.push(raw);
     }
@@ -919,11 +959,36 @@ async function getOcrImagesForDoc(doc, maxPages){
   return images;
 }
 
+// A single cached, reused worker configured for the highest-accuracy
+// ("best") LSTM trained data — noticeably sharper than Tesseract's default
+// "fast" data on real-world document photos, at the cost of a one-time
+// larger download and somewhat slower recognition. Still fully on-device.
+let _ocrWorkerPromise = null;
+function getOcrWorker(){
+  if(!_ocrWorkerPromise){
+    _ocrWorkerPromise = (async () => {
+      const worker = await Tesseract.createWorker('eng', 1, {
+        langPath: 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_best@main',
+      });
+      await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+      return worker;
+    })().catch(err => {
+      _ocrWorkerPromise = null; // allow retry on next call instead of caching a failure
+      throw err;
+    });
+  }
+  return _ocrWorkerPromise;
+}
+
 async function ocrCombinedText(images, onProgress){
+  if(!_ocrWorkerPromise){
+    updateLoading('Downloading high-accuracy OCR model (first time only)…');
+  }
+  const worker = await getOcrWorker();
   let combined = '';
   for(let i=0; i<images.length; i++){
     if(onProgress) onProgress(i, images.length);
-    const { data } = await Tesseract.recognize(images[i], 'eng');
+    const { data } = await worker.recognize(images[i]);
     combined += '\n' + (data.text || '');
   }
   return combined;
