@@ -967,9 +967,17 @@ let _ocrWorkerPromise = null;
 function getOcrWorker(){
   if(!_ocrWorkerPromise){
     _ocrWorkerPromise = (async () => {
-      const worker = await Tesseract.createWorker('eng', 1, {
-        langPath: 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_best@main',
-      });
+      let worker;
+      try{
+        worker = await Tesseract.createWorker('eng', 1, {
+          langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
+        });
+      } catch(err){
+        // High-accuracy model source unreachable — fall back to Tesseract's
+        // own bundled default data rather than breaking auto-detect entirely.
+        console.warn('High-accuracy OCR model failed to load, falling back to default:', err);
+        worker = await Tesseract.createWorker('eng', 1);
+      }
       await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
       return worker;
     })().catch(err => {
