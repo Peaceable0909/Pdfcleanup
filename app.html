@@ -566,8 +566,9 @@
   .editor-tools button.plain:hover{ background: rgba(255,255,255,0.12); }
   .editor-canvas-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; overflow:auto; }
   #editorStage{ position:relative; }
-  #editorBaseCanvas, #editorDrawCanvas{ position:absolute; top:0; left:0; border-radius:4px; box-shadow:0 10px 40px rgba(0,0,0,0.4); background:#fff; }
-  #editorDrawCanvas{ touch-action:none; cursor:crosshair; }
+  #editorBaseCanvas, #editorDrawCanvas{ position:absolute; top:0; left:0; border-radius:4px; }
+  #editorBaseCanvas{ background:#fff; box-shadow:0 10px 40px rgba(0,0,0,0.4); }
+  #editorDrawCanvas{ background:transparent; touch-action:none; cursor:crosshair; }
 
   .sig-overlay{ position:absolute; touch-action:none; border:1.5px dashed var(--stamp); }
   .sig-overlay img{ width:100%; height:100%; display:block; cursor:grab; pointer-events:auto; }
@@ -596,12 +597,26 @@
   }
   .sig-threshold-row{ margin-top:10px; display:flex; align-items:center; gap:10px; justify-content:center; }
   .sig-threshold-row label{ font-size:12px; color: var(--ink-soft); font-family:'Inter',sans-serif; }
+  .sig-upload-stage{ position:relative; display:inline-block; overflow:hidden; border-radius:8px; max-width:100%; }
 
-  /* Crop selection rubber-band */
-  .crop-selection{
-    position:absolute; top:0; left:0; border:1.5px dashed #fff; background: rgba(47,99,232,0.22);
-    display:none; pointer-events:none; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+  /* Persistent, adjustable crop box: 4 edge handles + 2 corner handles + drag-to-move */
+  .crop-box{
+    position:absolute; top:0; left:0; display:none;
+    border:1.5px dashed #fff; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+    cursor: move; touch-action:none;
   }
+  .crop-box .crop-handle{
+    position:absolute; background:#fff; border:2px solid var(--stamp); touch-action:none;
+  }
+  .crop-box .crop-handle.edge-h{ width:28px; height:9px; border-radius:5px; left:50%; transform:translate(-50%,-50%); }
+  .crop-box .crop-handle.edge-v{ width:9px; height:28px; border-radius:5px; top:50%; transform:translate(-50%,-50%); }
+  .crop-box .handle-top{ top:0; cursor: ns-resize; }
+  .crop-box .handle-bottom{ top:100%; cursor: ns-resize; }
+  .crop-box .handle-left{ left:0; cursor: ew-resize; }
+  .crop-box .handle-right{ left:100%; cursor: ew-resize; }
+  .crop-box .crop-handle.corner{ width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); cursor: nwse-resize; }
+  .crop-box .corner-tl{ top:0; left:0; }
+  .crop-box .corner-br{ top:100%; left:100%; }
 
   .zoom-controls{ display:flex; align-items:center; gap:4px; }
   .zoom-controls .zoom-pct{
@@ -770,7 +785,14 @@
     <div id="editorStage">
       <canvas id="editorBaseCanvas"></canvas>
       <canvas id="editorDrawCanvas"></canvas>
-      <div class="crop-selection" id="cropSelection"></div>
+      <div class="crop-box" id="cropBox">
+        <div class="crop-handle edge-h handle-top" data-handle="top"></div>
+        <div class="crop-handle edge-h handle-bottom" data-handle="bottom"></div>
+        <div class="crop-handle edge-v handle-left" data-handle="left"></div>
+        <div class="crop-handle edge-v handle-right" data-handle="right"></div>
+        <div class="crop-handle corner corner-tl" data-handle="tl"></div>
+        <div class="crop-handle corner corner-br" data-handle="br"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -794,13 +816,24 @@
 <div class="sig-pad-modal" id="sigUploadModal">
   <div class="sig-pad-card">
     <h3>Upload a signature image</h3>
-    <p class="hint">The light background is removed automatically — adjust the slider if it doesn't look right.</p>
-    <canvas id="sigUploadCanvas" width="480" height="220"></canvas>
+    <p class="hint">Crop to just the signature, then adjust the background removal if needed.</p>
+    <div class="sig-upload-stage" id="sigUploadStage">
+      <canvas id="sigUploadCanvas" width="480" height="220"></canvas>
+      <div class="crop-box" id="sigCropBox" style="display:block">
+        <div class="crop-handle edge-h handle-top" data-handle="top"></div>
+        <div class="crop-handle edge-h handle-bottom" data-handle="bottom"></div>
+        <div class="crop-handle edge-v handle-left" data-handle="left"></div>
+        <div class="crop-handle edge-v handle-right" data-handle="right"></div>
+        <div class="crop-handle corner corner-tl" data-handle="tl"></div>
+        <div class="crop-handle corner corner-br" data-handle="br"></div>
+      </div>
+    </div>
     <div class="sig-threshold-row">
       <label for="sigUploadThreshold">Background sensitivity</label>
       <input type="range" id="sigUploadThreshold" min="150" max="250" value="235" />
     </div>
     <div class="sig-pad-actions">
+      <button class="btn-secondary" id="sigUploadResetCrop" type="button">Reset crop</button>
       <button class="btn-secondary" id="sigUploadChooseAnother" type="button">Choose another image</button>
       <button class="btn-secondary" id="sigUploadCancel" type="button">Cancel</button>
       <button class="btn-primary" id="sigUploadSave" type="button">Save signature</button>
@@ -1802,8 +1835,6 @@ let currentTool = 'pen';
 let isDrawing = false;
 let lastPoint = null;
 let sigOverlays = [];
-let cropDragging = false;
-let cropStartPx = null;
 
 function loadImage(src){
   return new Promise((resolve, reject)=>{
@@ -1899,7 +1930,7 @@ async function openEditor(docId, pageId){
     editorHistory = [];
     sigOverlays.forEach(o=>o.el.remove());
     sigOverlays = [];
-    clearCropSelection();
+    hideCropBox();
     currentTool = 'pen';
     document.querySelectorAll('.editor-tools .tool-btn').forEach(b=>b.classList.remove('active'));
     document.querySelector('.editor-tools .tool-btn[data-tool="pen"]').classList.add('active');
@@ -1944,28 +1975,77 @@ function getCanvasPoint(e){
   return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
 }
 
-const cropSelectionEl = document.getElementById('cropSelection');
+const cropBoxEl = document.getElementById('cropBox');
+let cropBoxFrac = null; // {left, top, width, height} as fractions (0-1) of the stage size
+let activeCropDrag = null; // { type, startX, startY, sb:{w,h}, startBox }
+const CROP_MIN_FRAC = 0.04;
 
-function updateCropButtonsVisibility(){
-  const hasSelection = cropSelectionEl.style.display === 'block'
-    && parseFloat(cropSelectionEl.style.width || '0') > 4
-    && parseFloat(cropSelectionEl.style.height || '0') > 4;
-  document.getElementById('applyCropBtn').style.display = hasSelection ? 'inline-flex' : 'none';
-  document.getElementById('cancelCropBtn').style.display = hasSelection ? 'inline-flex' : 'none';
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function stageBounds(){ return { w: editorStage.offsetWidth, h: editorStage.offsetHeight }; }
+
+function showCropBox(){
+  if(!cropBoxFrac){
+    cropBoxFrac = { left: 0.08, top: 0.08, width: 0.84, height: 0.84 };
+  }
+  cropBoxEl.style.display = 'block';
+  renderCropBox();
+  document.getElementById('applyCropBtn').style.display = 'inline-flex';
+  document.getElementById('cancelCropBtn').style.display = 'inline-flex';
 }
-function clearCropSelection(){
-  cropSelectionEl.style.display = 'none';
-  cropSelectionEl.style.width = '0px';
-  cropSelectionEl.style.height = '0px';
-  updateCropButtonsVisibility();
+function hideCropBox(){
+  cropBoxEl.style.display = 'none';
+  cropBoxFrac = null;
+  activeCropDrag = null;
+  document.getElementById('applyCropBtn').style.display = 'none';
+  document.getElementById('cancelCropBtn').style.display = 'none';
 }
+function renderCropBox(){
+  if(!cropBoxFrac) return;
+  const sb = stageBounds();
+  cropBoxEl.style.left = (cropBoxFrac.left * sb.w) + 'px';
+  cropBoxEl.style.top = (cropBoxFrac.top * sb.h) + 'px';
+  cropBoxEl.style.width = (cropBoxFrac.width * sb.w) + 'px';
+  cropBoxEl.style.height = (cropBoxFrac.height * sb.h) + 'px';
+}
+
+cropBoxEl.addEventListener('pointerdown', (e)=>{
+  const type = e.target.dataset.handle || 'move';
+  activeCropDrag = { type, startX: e.clientX, startY: e.clientY, sb: stageBounds(), startBox: {...cropBoxFrac} };
+  e.target.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+  e.preventDefault();
+});
+window.addEventListener('pointermove', (e)=>{
+  if(!activeCropDrag || !cropBoxFrac) return;
+  const { sb, startBox: s, type } = activeCropDrag;
+  const dxF = (e.clientX - activeCropDrag.startX) / sb.w;
+  const dyF = (e.clientY - activeCropDrag.startY) / sb.h;
+  let { left, top, width, height } = s;
+
+  if(type === 'move'){
+    left = clamp(s.left + dxF, 0, 1 - s.width);
+    top = clamp(s.top + dyF, 0, 1 - s.height);
+  } else {
+    let right = s.left + s.width;
+    let bottom = s.top + s.height;
+    if(type === 'top' || type === 'tl') top = clamp(s.top + dyF, 0, bottom - CROP_MIN_FRAC);
+    if(type === 'left' || type === 'tl') left = clamp(s.left + dxF, 0, right - CROP_MIN_FRAC);
+    if(type === 'bottom' || type === 'br') bottom = clamp(s.top + s.height + dyF, top + CROP_MIN_FRAC, 1);
+    if(type === 'right' || type === 'br') right = clamp(s.left + s.width + dxF, left + CROP_MIN_FRAC, 1);
+    width = right - left;
+    height = bottom - top;
+  }
+  cropBoxFrac = { left, top, width, height };
+  renderCropBox();
+});
+window.addEventListener('pointerup', ()=>{ activeCropDrag = null; });
+
 function applyCrop(){
-  if(cropSelectionEl.style.display !== 'block') return;
-  const scale = drawCanvas.width / drawCanvas.getBoundingClientRect().width;
-  const x = parseFloat(cropSelectionEl.style.left) * scale;
-  const y = parseFloat(cropSelectionEl.style.top) * scale;
-  const w = parseFloat(cropSelectionEl.style.width) * scale;
-  const h = parseFloat(cropSelectionEl.style.height) * scale;
+  if(!cropBoxFrac) return;
+  const x = cropBoxFrac.left * drawCanvas.width;
+  const y = cropBoxFrac.top * drawCanvas.height;
+  const w = cropBoxFrac.width * drawCanvas.width;
+  const h = cropBoxFrac.height * drawCanvas.height;
   if(w < 4 || h < 4) return;
 
   bakeSignatureOverlays(); // don't lose in-progress signature placement to the crop
@@ -1987,46 +2067,20 @@ function applyCrop(){
   editorCtx.drawImage(newDraw, 0, 0);
 
   editorHistory = [];
-  clearCropSelection();
   fitEditorCanvasDisplay();
   showToast('Cropped', 'success');
 }
 
 drawCanvas.addEventListener('pointerdown', (e)=>{
   if(e.target !== drawCanvas) return;
-  if(currentTool === 'crop'){
-    cropDragging = true;
-    const stageRect = editorStage.getBoundingClientRect();
-    cropStartPx = { x: e.clientX - stageRect.left, y: e.clientY - stageRect.top };
-    cropSelectionEl.style.display = 'block';
-    cropSelectionEl.style.left = cropStartPx.x + 'px';
-    cropSelectionEl.style.top = cropStartPx.y + 'px';
-    cropSelectionEl.style.width = '0px';
-    cropSelectionEl.style.height = '0px';
-    drawCanvas.setPointerCapture(e.pointerId);
-    return;
-  }
+  if(currentTool === 'crop') return; // the crop box itself handles all crop interaction
   isDrawing = true;
   pushEditorHistory();
   lastPoint = getCanvasPoint(e);
   drawCanvas.setPointerCapture(e.pointerId);
 });
 drawCanvas.addEventListener('pointermove', (e)=>{
-  if(currentTool === 'crop'){
-    if(!cropDragging) return;
-    const stageRect = editorStage.getBoundingClientRect();
-    const curX = e.clientX - stageRect.left;
-    const curY = e.clientY - stageRect.top;
-    const left = Math.min(curX, cropStartPx.x);
-    const top = Math.min(curY, cropStartPx.y);
-    const w = Math.abs(curX - cropStartPx.x);
-    const h = Math.abs(curY - cropStartPx.y);
-    cropSelectionEl.style.left = left + 'px';
-    cropSelectionEl.style.top = top + 'px';
-    cropSelectionEl.style.width = w + 'px';
-    cropSelectionEl.style.height = h + 'px';
-    return;
-  }
+  if(currentTool === 'crop') return;
   if(!isDrawing) return;
   const pt = getCanvasPoint(e);
   editorCtx.lineJoin = 'round';
@@ -2047,7 +2101,7 @@ drawCanvas.addEventListener('pointermove', (e)=>{
 });
 ['pointerup','pointerleave','pointercancel'].forEach(evt=>{
   drawCanvas.addEventListener(evt, ()=>{
-    if(currentTool === 'crop'){ cropDragging = false; updateCropButtonsVisibility(); return; }
+    if(currentTool === 'crop') return;
     isDrawing = false; lastPoint = null;
   });
 });
@@ -2057,20 +2111,30 @@ document.querySelectorAll('.editor-tools .tool-btn').forEach(btn=>{
     document.querySelectorAll('.editor-tools .tool-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     currentTool = btn.dataset.tool;
-    if(currentTool !== 'crop') clearCropSelection();
+    if(currentTool === 'crop') showCropBox(); else hideCropBox();
   });
 });
 document.getElementById('undoBtn').addEventListener('click', undoEditor);
 document.getElementById('clearBtn').addEventListener('click', clearEditorMarks);
-document.getElementById('applyCropBtn').addEventListener('click', applyCrop);
-document.getElementById('cancelCropBtn').addEventListener('click', clearCropSelection);
+document.getElementById('applyCropBtn').addEventListener('click', ()=>{
+  applyCrop();
+  hideCropBox();
+  document.querySelector('.editor-tools .tool-btn[data-tool="pen"]').click();
+});
+document.getElementById('cancelCropBtn').addEventListener('click', ()=>{
+  hideCropBox();
+  document.querySelector('.editor-tools .tool-btn[data-tool="pen"]').click();
+});
 document.getElementById('zoomInBtn').addEventListener('click', ()=>zoomEditor(1.25));
 document.getElementById('zoomOutBtn').addEventListener('click', ()=>zoomEditor(0.8));
 document.getElementById('zoomResetBtn').addEventListener('click', resetEditorZoom);
 document.getElementById('editorCancel').addEventListener('click', closeEditor);
 document.getElementById('editorSave').addEventListener('click', saveEditor);
 window.addEventListener('resize', ()=>{
-  if(editorModal.classList.contains('open')) fitEditorCanvasDisplay();
+  if(editorModal.classList.contains('open')){
+    fitEditorCanvasDisplay();
+    renderCropBox();
+  }
 });
 
 function bakeSignatureOverlays(){
@@ -2270,11 +2334,65 @@ function renderSigUploadPreview(){
 
 function openSigUploadModal(){
   renderSigUploadPreview();
+  resetSigCropBox();
   document.getElementById('sigUploadModal').classList.add('open');
 }
 function closeSigUploadModal(){
   document.getElementById('sigUploadModal').classList.remove('open');
 }
+
+/* ---- Crop box for the signature upload preview (same 6-handle pattern as the page editor) ---- */
+const sigCropBoxEl = document.getElementById('sigCropBox');
+const sigUploadStageEl = document.getElementById('sigUploadStage');
+let sigCropFrac = null;
+let activeSigCropDrag = null;
+const SIG_CROP_MIN_FRAC = 0.05;
+
+function sigStageBounds(){ return { w: sigUploadStageEl.offsetWidth, h: sigUploadStageEl.offsetHeight }; }
+function resetSigCropBox(){
+  sigCropFrac = { left: 0, top: 0, width: 1, height: 1 };
+  renderSigCropBox();
+}
+function renderSigCropBox(){
+  if(!sigCropFrac) return;
+  const sb = sigStageBounds();
+  sigCropBoxEl.style.left = (sigCropFrac.left * sb.w) + 'px';
+  sigCropBoxEl.style.top = (sigCropFrac.top * sb.h) + 'px';
+  sigCropBoxEl.style.width = (sigCropFrac.width * sb.w) + 'px';
+  sigCropBoxEl.style.height = (sigCropFrac.height * sb.h) + 'px';
+}
+sigCropBoxEl.addEventListener('pointerdown', (e)=>{
+  const type = e.target.dataset.handle || 'move';
+  activeSigCropDrag = { type, startX: e.clientX, startY: e.clientY, sb: sigStageBounds(), startBox: {...sigCropFrac} };
+  e.target.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+  e.preventDefault();
+});
+window.addEventListener('pointermove', (e)=>{
+  if(!activeSigCropDrag || !sigCropFrac) return;
+  const { sb, startBox: s, type } = activeSigCropDrag;
+  const dxF = (e.clientX - activeSigCropDrag.startX) / sb.w;
+  const dyF = (e.clientY - activeSigCropDrag.startY) / sb.h;
+  let { left, top, width, height } = s;
+
+  if(type === 'move'){
+    left = clamp(s.left + dxF, 0, 1 - s.width);
+    top = clamp(s.top + dyF, 0, 1 - s.height);
+  } else {
+    let right = s.left + s.width;
+    let bottom = s.top + s.height;
+    if(type === 'top' || type === 'tl') top = clamp(s.top + dyF, 0, bottom - SIG_CROP_MIN_FRAC);
+    if(type === 'left' || type === 'tl') left = clamp(s.left + dxF, 0, right - SIG_CROP_MIN_FRAC);
+    if(type === 'bottom' || type === 'br') bottom = clamp(s.top + s.height + dyF, top + SIG_CROP_MIN_FRAC, 1);
+    if(type === 'right' || type === 'br') right = clamp(s.left + s.width + dxF, left + SIG_CROP_MIN_FRAC, 1);
+    width = right - left;
+    height = bottom - top;
+  }
+  sigCropFrac = { left, top, width, height };
+  renderSigCropBox();
+});
+window.addEventListener('pointerup', ()=>{ activeSigCropDrag = null; });
+document.getElementById('sigUploadResetCrop').addEventListener('click', resetSigCropBox);
 
 document.getElementById('uploadSignatureBtn').addEventListener('click', ()=>{
   document.getElementById('sigUploadInput').click();
@@ -2311,7 +2429,21 @@ document.getElementById('sigUploadSave').addEventListener('click', async ()=>{
   full.getContext('2d').drawImage(sigUploadOriginalImg, 0, 0);
   const threshold = parseInt(document.getElementById('sigUploadThreshold').value, 10);
   removeNearWhiteBackground(full, threshold);
-  const dataUrl = full.toDataURL('image/png');
+
+  let finalCanvas = full;
+  if(sigCropFrac && (sigCropFrac.left > 0.001 || sigCropFrac.top > 0.001 || sigCropFrac.width < 0.999 || sigCropFrac.height < 0.999)){
+    const cx = sigCropFrac.left * full.width;
+    const cy = sigCropFrac.top * full.height;
+    const cw = sigCropFrac.width * full.width;
+    const ch = sigCropFrac.height * full.height;
+    const cropped = document.createElement('canvas');
+    cropped.width = Math.max(1, Math.round(cw));
+    cropped.height = Math.max(1, Math.round(ch));
+    cropped.getContext('2d').drawImage(full, cx, cy, cw, ch, 0, 0, cropped.width, cropped.height);
+    finalCanvas = cropped;
+  }
+
+  const dataUrl = finalCanvas.toDataURL('image/png');
   await saveSignatureToStore(dataUrl);
   closeSigUploadModal();
   await placeSignatureOverlay(dataUrl);
