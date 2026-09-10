@@ -80,8 +80,18 @@
   }
   .student-field input::placeholder{ color: rgba(255,255,255,0.45); font-family:'Inter',sans-serif; font-style:italic; }
 
-  .stats{ display:flex; gap:22px; font-family:'Inter', sans-serif; font-size:12px; color: rgba(255,255,255,0.7); }
+  .stats{ display:flex; align-items:center; gap:22px; font-family:'Inter', sans-serif; font-size:12px; color: rgba(255,255,255,0.7); }
   .stats b{ color: #fff; font-weight:700; }
+  .save-indicator{ display:flex; align-items:center; gap:6px; font-size:11.5px; color: rgba(255,255,255,0.55); }
+  .save-indicator .dot{ width:6px; height:6px; border-radius:50%; background: var(--sage); transition: background .2s ease, opacity .2s ease; }
+  .save-indicator.saving .dot{ background: var(--stamp-dim); animation: dotPulse 1s ease-in-out infinite; }
+  @keyframes dotPulse{ 0%,100%{ opacity:0.4; } 50%{ opacity:1; } }
+  .btn-clear-data{
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.2);
+    font-family:'Inter',sans-serif; font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:7px; cursor:pointer;
+    transition: background .15s ease;
+  }
+  .btn-clear-data:hover{ background: rgba(255,255,255,0.16); }
 
   /* ---------- Body layout ---------- */
   .body-grid{ display:flex; flex:1; min-height:0; }
@@ -254,6 +264,10 @@
     position:absolute; top:12px; left:12px; background: var(--ink); color: var(--paper-white);
     font-family:'Inter', sans-serif; font-size:10px; padding:1px 5px; border-radius:2px;
     opacity:0.85;
+  }
+  .page-card .annotated-badge{
+    position:absolute; top:12px; right:12px; background: var(--sage); color:#fff;
+    font-family:'Inter', sans-serif; font-size:9px; font-weight:700; padding:1px 5px; border-radius:2px;
   }
   .page-card .ctrl-row{ display:flex; align-items:center; justify-content:space-between; }
   .page-card select.move-to{
@@ -523,6 +537,76 @@
   .docx-render-surface ul, .docx-render-surface ol{ margin: 0 0 10px; padding-left: 24px; }
   .docx-render-surface img{ max-width: 100%; }
   .docx-render-surface strong{ font-weight: 700; }
+
+  /* ---------- Page editor (draw + signature) ---------- */
+  .editor-modal{ position:fixed; inset:0; background:rgba(11,37,69,0.94); z-index:300; display:none; flex-direction:column; }
+  .editor-modal.open{ display:flex; }
+  .editor-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; flex-wrap:wrap; gap:10px; background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .editor-title{ color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; }
+  .editor-tools{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .editor-tools .tool-btn{
+    background: rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.2);
+    padding:7px 12px; border-radius:7px; font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .editor-tools .tool-btn:hover{ background: rgba(255,255,255,0.16); }
+  .editor-tools .tool-btn.active{ background: var(--stamp); border-color: var(--stamp); }
+  .editor-tools input[type=color]{ width:30px; height:30px; border:none; border-radius:6px; background:none; cursor:pointer; padding:0; }
+  .editor-tools input[type=range]{ width:90px; accent-color: var(--stamp-dim); }
+  .editor-tools .sep{ width:1px; height:22px; background: rgba(255,255,255,0.2); margin:0 4px; }
+  .editor-tools button.plain{
+    background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.25);
+    padding:7px 12px; border-radius:7px; font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer;
+    transition: background .15s ease;
+  }
+  .editor-tools button.plain:hover{ background: rgba(255,255,255,0.12); }
+  .editor-canvas-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; overflow:auto; }
+  #editorStage{ position:relative; }
+  #editorBaseCanvas, #editorDrawCanvas{ position:absolute; top:0; left:0; border-radius:4px; box-shadow:0 10px 40px rgba(0,0,0,0.4); background:#fff; }
+  #editorDrawCanvas{ touch-action:none; cursor:crosshair; }
+
+  .sig-overlay{ position:absolute; touch-action:none; border:1.5px dashed var(--stamp); }
+  .sig-overlay img{ width:100%; height:100%; display:block; cursor:grab; pointer-events:auto; }
+  .sig-overlay .sig-resize-handle{
+    position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background: var(--stamp);
+    border-radius:50%; cursor: nwse-resize; border:2px solid #fff;
+  }
+  .sig-overlay .sig-remove{
+    position:absolute; top:-11px; right:-11px; width:20px; height:20px; border-radius:50%;
+    background:#B42318; color:#fff; border:2px solid #fff; font-size:13px; line-height:1; cursor:pointer; padding:0;
+  }
+
+  .sig-pad-modal{ position:fixed; inset:0; background: rgba(11,37,69,0.55); z-index:320; display:none; align-items:center; justify-content:center; padding:20px; }
+  .sig-pad-modal.open{ display:flex; }
+  .sig-pad-card{ background:#fff; border-radius:14px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; max-width:94vw; }
+  .sig-pad-card h3{ margin:0 0 4px; font-family:'Inter',sans-serif; }
+  .sig-pad-card p.hint{ margin:0 0 14px; font-size:12px; color: var(--ink-soft); }
+  #sigPadCanvas{ border:1.5px dashed var(--tan-dark); border-radius:8px; background:#fff; touch-action:none; cursor:crosshair; max-width:100%; }
+  .sig-pad-actions{ display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+
+  /* Checkerboard behind sig-upload preview so transparency is visible */
+  #sigUploadCanvas{
+    border:1.5px solid var(--rule); border-radius:8px; max-width:100%;
+    background-image: linear-gradient(45deg, #e2e5ea 25%, transparent 25%), linear-gradient(-45deg, #e2e5ea 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e5ea 75%), linear-gradient(-45deg, transparent 75%, #e2e5ea 75%);
+    background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  .sig-threshold-row{ margin-top:10px; display:flex; align-items:center; gap:10px; justify-content:center; }
+  .sig-threshold-row label{ font-size:12px; color: var(--ink-soft); font-family:'Inter',sans-serif; }
+
+  /* Crop selection rubber-band */
+  .crop-selection{
+    position:absolute; top:0; left:0; border:1.5px dashed #fff; background: rgba(47,99,232,0.22);
+    display:none; pointer-events:none; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+  }
+
+  .zoom-controls{ display:flex; align-items:center; gap:4px; }
+  .zoom-controls .zoom-pct{
+    color:#fff; font-family:'Inter',sans-serif; font-size:12px; min-width:42px; text-align:center;
+  }
 </style>
 </head>
 <body>
@@ -547,6 +631,10 @@
       <div>Files in <b id="statFiles">0</b></div>
       <div>Documents <b id="statDocs">0</b></div>
       <div>Pages <b id="statPages">0</b></div>
+      <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
+        <span class="dot"></span><span id="saveIndicatorText">Saved</span>
+      </div>
+      <button class="btn-clear-data" id="clearDataBtn" type="button" title="Clear all uploaded files and documents">Start over</button>
     </div>
   </header>
 
@@ -643,6 +731,80 @@
     <span id="lbPageLabel">Page 1 / 1</span>
     <button id="lbNext" type="button">Next page</button>
     <button id="lbRotate" type="button">Rotate</button>
+    <button id="lbMarkup" type="button">Draw / Sign</button>
+  </div>
+</div>
+
+<!-- ---------- Page editor: freehand drawing + signature placement ---------- -->
+<div class="editor-modal" id="editorModal">
+  <div class="editor-topbar">
+    <div class="editor-title">Markup page</div>
+    <div class="editor-tools">
+      <button class="tool-btn active" data-tool="pen" type="button">Pen</button>
+      <button class="tool-btn" data-tool="eraser" type="button">Eraser</button>
+      <input type="color" id="penColor" value="#1f2937" title="Pen color" />
+      <input type="range" id="penWidth" min="1" max="18" value="3" title="Pen size" />
+      <button class="plain" id="undoBtn" type="button">Undo</button>
+      <button class="plain" id="clearBtn" type="button">Clear marks</button>
+      <span class="sep"></span>
+      <button class="tool-btn" data-tool="crop" type="button">Crop</button>
+      <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply crop</button>
+      <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel crop</button>
+      <span class="sep"></span>
+      <div class="zoom-controls">
+        <button class="plain" id="zoomOutBtn" type="button" title="Zoom out">&minus;</button>
+        <span class="zoom-pct" id="zoomPct">100%</span>
+        <button class="plain" id="zoomInBtn" type="button" title="Zoom in">&#43;</button>
+        <button class="plain" id="zoomResetBtn" type="button" title="Reset zoom">Fit</button>
+      </div>
+      <span class="sep"></span>
+      <button class="plain" id="addSignatureBtn" type="button">Insert signature</button>
+      <button class="plain" id="uploadSignatureBtn" type="button">Upload signature</button>
+      <button class="plain" id="redrawSignatureBtn" type="button">Draw signature</button>
+      <span class="sep"></span>
+      <button class="btn-secondary" id="editorCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="editorSave" type="button">Save page</button>
+    </div>
+  </div>
+  <div class="editor-canvas-wrap">
+    <div id="editorStage">
+      <canvas id="editorBaseCanvas"></canvas>
+      <canvas id="editorDrawCanvas"></canvas>
+      <div class="crop-selection" id="cropSelection"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Signature pad: draw once, reused (and persisted) afterwards ---------- -->
+<div class="sig-pad-modal" id="sigPadModal">
+  <div class="sig-pad-card">
+    <h3>Draw your signature</h3>
+    <p class="hint">This is saved on this device and reused next time.</p>
+    <canvas id="sigPadCanvas" width="480" height="180"></canvas>
+    <div class="sig-pad-actions">
+      <button class="btn-secondary" id="sigPadClear" type="button">Clear</button>
+      <button class="btn-secondary" id="sigPadCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="sigPadSave" type="button">Save signature</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Signature upload: pick an image, background is removed automatically ---------- -->
+<input type="file" id="sigUploadInput" accept="image/*" style="display:none" />
+<div class="sig-pad-modal" id="sigUploadModal">
+  <div class="sig-pad-card">
+    <h3>Upload a signature image</h3>
+    <p class="hint">The light background is removed automatically — adjust the slider if it doesn't look right.</p>
+    <canvas id="sigUploadCanvas" width="480" height="220"></canvas>
+    <div class="sig-threshold-row">
+      <label for="sigUploadThreshold">Background sensitivity</label>
+      <input type="range" id="sigUploadThreshold" min="150" max="250" value="235" />
+    </div>
+    <div class="sig-pad-actions">
+      <button class="btn-secondary" id="sigUploadChooseAnother" type="button">Choose another image</button>
+      <button class="btn-secondary" id="sigUploadCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="sigUploadSave" type="button">Save signature</button>
+    </div>
   </div>
 </div>
 
@@ -713,6 +875,7 @@ const LOADING_FLAVORS = {
   ocr: ["Squinting at the small print…", "Teaching pixels to read…", "Hunting for keywords…", "This bit takes patience…"],
   build: ["Stapling pages together…", "Assembling the PDF…", "Lining everything up…", "Almost download-ready…"],
   zip: ["Packing the suitcase…", "Zipping things up…", "Making it one tidy file…", "Nearly there…"],
+  restore: ["Reopening your last session…", "Bringing your files back…", "Loading everything back in…"],
   default: ["Working on it…", "Just a moment…", "Almost done…"],
 };
 
@@ -722,6 +885,7 @@ function loadingKindFor(msg){
   if(m.includes('convert')) return 'convert';
   if(m.includes('zip') || m.includes('compress')) return 'zip';
   if(m.includes('build')) return 'build';
+  if(m.includes('restor')) return 'restore';
   if(m.includes('read')) return 'read';
   return 'default';
 }
@@ -756,10 +920,147 @@ function hideLoading(){
   }
 }
 
+/* ---------------- IndexedDB persistence layer ---------------- */
+const DB_NAME = 'sdo_storage';
+const DB_VERSION = 1;
+const STORE = 'kv';
+let _dbPromise = null;
+
+function openDB(){
+  if(_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject)=>{
+    if(!('indexedDB' in window)){ reject(new Error('IndexedDB not available')); return; }
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(STORE); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+  return _dbPromise;
+}
+async function idbGet(key){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+function setSaveIndicator(state){
+  const el = document.getElementById('saveIndicator');
+  const txt = document.getElementById('saveIndicatorText');
+  if(!el) return;
+  if(state === 'saving'){ el.classList.add('saving'); txt.textContent = 'Saving…'; }
+  else if(state === 'error'){ el.classList.remove('saving'); txt.textContent = 'Not saved'; }
+  else { el.classList.remove('saving'); txt.textContent = 'Saved'; }
+}
+
+function serializeState(){
+  const files = {};
+  for(const [fid, entry] of Object.entries(fileStore)){
+    if(entry.kind === 'pdf'){
+      files[fid] = { kind:'pdf', name: entry.name, arrayBuffer: entry.arrayBuffer };
+    } else {
+      files[fid] = { kind:'image', name: entry.name, mime: entry.mime, dataUrl: entry.dataUrl };
+    }
+  }
+  return {
+    studentName: document.getElementById('studentName').value,
+    uidCounter,
+    selectedDocId,
+    documents: documents.map(d=>({
+      id: d.id, docType: d.docType, sourceName: d.sourceName,
+      pages: d.pages.map(p=>({
+        id:p.id, fileId:p.fileId, pageNum:p.pageNum, rotation:p.rotation,
+        thumb:p.thumb, annotatedDataUrl: p.annotatedDataUrl || null,
+      })),
+    })),
+    files,
+  };
+}
+
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  setSaveIndicator('saving');
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await idbSet('state', serializeState());
+      setSaveIndicator('saved');
+    } catch(err){
+      console.error('Autosave failed', err);
+      setSaveIndicator('error');
+    }
+  }, 700);
+}
+function flushSaveNow(){
+  clearTimeout(saveTimer);
+  idbSet('state', serializeState()).catch(err => console.error('Flush save failed', err));
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') flushSaveNow();
+});
+window.addEventListener('pagehide', flushSaveNow);
+
+async function restoreState(){
+  let saved;
+  try{ saved = await idbGet('state'); } catch(e){ console.warn('Could not read saved session', e); return false; }
+  if(!saved) return false;
+
+  showLoading('Reopening your last session…');
+  try{
+    for(const [fid, entry] of Object.entries(saved.files || {})){
+      if(entry.kind === 'pdf'){
+        const pdfjsDoc = await pdfjsLib.getDocument({ data: entry.arrayBuffer.slice(0) }).promise;
+        fileStore[fid] = { kind:'pdf', name: entry.name, arrayBuffer: entry.arrayBuffer, pdfjsDoc, pdfLibDoc: null };
+      } else {
+        fileStore[fid] = { kind:'image', name: entry.name, dataUrl: entry.dataUrl, mime: entry.mime };
+      }
+    }
+    documents = saved.documents || [];
+    selectedDocId = saved.selectedDocId || (documents[0] && documents[0].id) || null;
+    uidCounter = Math.max(uidCounter, saved.uidCounter || 0);
+    document.getElementById('studentName').value = saved.studentName || '';
+    return true;
+  } catch(err){
+    console.error('Failed to restore previous session', err);
+    showToast("Couldn't fully restore your last session", 'error');
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
+
+async function getSavedSignature(){
+  try{ return await idbGet('savedSignature'); } catch(e){ return null; }
+}
+async function saveSignatureToStore(dataUrl){
+  try{ await idbSet('savedSignature', dataUrl); } catch(e){ console.error('Could not save signature', e); }
+}
+
 /* ---------------- State ---------------- */
 // fileStore: fileId -> { kind: 'pdf'|'image', name, arrayBuffer (pdf), pdfjsDoc, pdfLibDoc, dataUrl (image), mime }
 const fileStore = {};
-let documents = []; // { id, docType, pages: [ {id, fileId, pageNum(1-based, pdf only), rotation, thumb} ] }
+let documents = []; // { id, docType, pages: [ {id, fileId, pageNum(1-based, pdf only), rotation, thumb, annotatedDataUrl} ] }
 let selectedDocId = null;
 let uidCounter = 1;
 const uid = (p) => `${p}_${uidCounter++}`;
@@ -944,7 +1245,9 @@ async function getOcrImagesForDoc(doc, maxPages){
     const fileEntry = fileStore[pg.fileId];
     if(!fileEntry) continue;
     let raw;
-    if(fileEntry.kind === 'pdf'){
+    if(pg.annotatedDataUrl){
+      raw = pg.annotatedDataUrl;
+    } else if(fileEntry.kind === 'pdf'){
       // Re-render at higher resolution than the thumbnail for better OCR accuracy.
       raw = await renderPdfPageThumb(fileEntry.pdfjsDoc, pg.pageNum, 2.0);
     } else {
@@ -1112,7 +1415,7 @@ async function ingestPdf(file, targetDocId){
 
   for(let p=1; p<=pdfjsDoc.numPages; p++){
     const thumb = await renderPdfPageThumb(pdfjsDoc, p);
-    doc.pages.push({ id: uid('pg'), fileId, pageNum: p, rotation:0, thumb });
+    doc.pages.push({ id: uid('pg'), fileId, pageNum: p, rotation:0, thumb, annotatedDataUrl:null });
   }
 }
 
@@ -1143,7 +1446,7 @@ async function ingestImage(file, targetDocId){
     documents.push(doc);
     if(!selectedDocId) selectedDocId = doc.id;
   }
-  doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl });
+  doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl, annotatedDataUrl:null });
 }
 
 const DOCX_PAGE_W = 816;   // 8.5in @ 96dpi
@@ -1199,7 +1502,7 @@ async function ingestDocx(file, targetDocId){
 
     const fileId = uid('file');
     fileStore[fileId] = { kind:'image', name: `${file.name} (p${i+1})`, dataUrl, mime:'image/png' };
-    doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl });
+    doc.pages.push({ id: uid('pg'), fileId, pageNum:null, rotation:0, thumb: dataUrl, annotatedDataUrl:null });
   }
 }
 
@@ -1276,6 +1579,7 @@ function iconSvg(name){
     rotate: '<path d="M3 3v5h5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 9a5.5 5.5 0 1 0 1.6-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     trash: '<path d="M2.5 4h11M5.5 4V2.8c0-.4.3-.8.8-.8h3.4c.4 0 .8.3.8.8V4M6 4v8.2c0 .4.3.8.8.8h4.4c.4 0 .8-.3.8-.8V4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     expand: '<path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    pen: '<path d="M3 15 3.6 12.2 11.5 4.3a1.4 1.4 0 0 1 2 0l.9.9a1.4 1.4 0 0 1 0 2L6.5 15.1 3 15Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M10 5.7l2.3 2.3" stroke="currentColor" stroke-width="1.3"/>',
   };
   return `<svg viewBox="0 0 18 18">${icons[name]||''}</svg>`;
 }
@@ -1285,6 +1589,7 @@ function render(){
   renderDocList();
   renderWorkspace();
   renderDownloadBar();
+  scheduleSave();
 }
 
 function renderStats(){
@@ -1323,6 +1628,7 @@ function renderDocList(){
       doc.docType = e.target.value;
       renderWorkspace();
       renderDownloadBar();
+      scheduleSave();
       // update just this tab's meta line without full re-render to preserve focus
       tab.querySelector('.filename-preview').textContent = filenameFor(doc);
     });
@@ -1368,9 +1674,11 @@ function renderWorkspace(){
 
     card.innerHTML = `
       <div class="idx">${idx+1}</div>
+      ${pg.annotatedDataUrl ? '<div class="annotated-badge">Marked up</div>' : ''}
       <div class="thumb-wrap ${rotClass}"><img src="${pg.thumb}" alt="Page ${idx+1}" data-action="open-lightbox" /></div>
       <div class="ctrl-row">
         <button class="icon-btn" data-action="rotate" title="Rotate">${iconSvg('rotate')}</button>
+        <button class="icon-btn" data-action="markup" title="Draw / sign">${iconSvg('pen')}</button>
         <button class="icon-btn" data-action="expand" title="Inspect">${iconSvg('expand')}</button>
         <button class="icon-btn" data-action="delete" title="Delete page">${iconSvg('trash')}</button>
       </div>
@@ -1381,6 +1689,7 @@ function renderWorkspace(){
       </select>
     `;
     card.querySelector('[data-action="rotate"]').addEventListener('click', ()=>rotatePage(doc.id, pg.id));
+    card.querySelector('[data-action="markup"]').addEventListener('click', ()=>openEditor(doc.id, pg.id));
     card.querySelector('[data-action="delete"]').addEventListener('click', ()=>deletePage(doc.id, pg.id));
     card.querySelector('[data-action="expand"]').addEventListener('click', ()=>openLightbox(doc.id, idx));
     card.querySelector('img').addEventListener('click', ()=>openLightbox(doc.id, idx));
@@ -1467,9 +1776,546 @@ document.getElementById('lbRotate').addEventListener('click', ()=>{
   pg.rotation = (pg.rotation + 90) % 360;
   renderLightbox();
   renderWorkspace();
+  scheduleSave();
+});
+document.getElementById('lbMarkup').addEventListener('click', ()=>{
+  const doc = documents.find(d=>d.id===lbDocId);
+  if(!doc) return;
+  const pg = doc.pages[lbIdx];
+  closeLightbox();
+  openEditor(doc.id, pg.id);
 });
 document.getElementById('lightbox').addEventListener('click', (e)=>{
   if(e.target.id === 'lightbox') closeLightbox();
+});
+
+/* ---------------- Page editor: freehand drawing + signature ---------------- */
+const editorModal = document.getElementById('editorModal');
+const editorStage = document.getElementById('editorStage');
+const baseCanvas = document.getElementById('editorBaseCanvas');
+const drawCanvas = document.getElementById('editorDrawCanvas');
+let editorBaseCtx = null;
+let editorCtx = null;
+let editorDoc = null, editorPageId = null;
+let editorHistory = [];
+let currentTool = 'pen';
+let isDrawing = false;
+let lastPoint = null;
+let sigOverlays = [];
+let cropDragging = false;
+let cropStartPx = null;
+
+function loadImage(src){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function rotateImageToCanvas(img, rotation){
+  if(!rotation) return img;
+  const rotated90 = rotation===90 || rotation===270;
+  const c = document.createElement('canvas');
+  c.width = rotated90 ? img.naturalHeight : img.naturalWidth;
+  c.height = rotated90 ? img.naturalWidth : img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.save();
+  ctx.translate(c.width/2, c.height/2);
+  ctx.rotate(rotation * Math.PI/180);
+  ctx.drawImage(img, -img.naturalWidth/2, -img.naturalHeight/2);
+  ctx.restore();
+  return loadImage(c.toDataURL('image/png'));
+}
+
+let editorFitRatio = 1;
+let editorZoom = 1;
+
+function computeEditorFitRatio(){
+  const maxW = window.innerWidth * 0.86;
+  const maxH = window.innerHeight * 0.62;
+  return Math.min(maxW/baseCanvas.width, maxH/baseCanvas.height, 1);
+}
+
+function applyEditorDisplaySize(){
+  const ratio = editorFitRatio * editorZoom;
+  const dispW = Math.round(baseCanvas.width * ratio);
+  const dispH = Math.round(baseCanvas.height * ratio);
+  [baseCanvas, drawCanvas].forEach(c=>{ c.style.width = dispW+'px'; c.style.height = dispH+'px'; });
+  editorStage.style.width = dispW+'px';
+  editorStage.style.height = dispH+'px';
+  document.getElementById('zoomPct').textContent = Math.round(editorZoom*100) + '%';
+}
+
+function fitEditorCanvasDisplay(){
+  editorFitRatio = computeEditorFitRatio();
+  editorZoom = 1;
+  applyEditorDisplaySize();
+}
+
+function zoomEditor(factor){
+  editorZoom = Math.max(0.25, Math.min(4, editorZoom * factor));
+  applyEditorDisplaySize();
+}
+function resetEditorZoom(){
+  editorZoom = 1;
+  applyEditorDisplaySize();
+}
+
+async function openEditor(docId, pageId){
+  const doc = documents.find(d=>d.id===docId);
+  const pg = doc && doc.pages.find(p=>p.id===pageId);
+  if(!doc || !pg) return;
+  editorDoc = doc; editorPageId = pageId;
+
+  showLoading('Opening editor…');
+  try{
+    let baseSrc;
+    let bakedRotation = false;
+    if(pg.annotatedDataUrl){
+      baseSrc = pg.annotatedDataUrl; // rotation already baked in from a previous save
+      bakedRotation = true;
+    } else {
+      const fileEntry = fileStore[pg.fileId];
+      baseSrc = fileEntry.kind === 'pdf'
+        ? await renderPdfPageThumb(fileEntry.pdfjsDoc, pg.pageNum, 2.2)
+        : fileEntry.dataUrl;
+    }
+    const rawImg = await loadImage(baseSrc);
+    const img = bakedRotation ? rawImg : await rotateImageToCanvas(rawImg, pg.rotation || 0);
+
+    baseCanvas.width = img.naturalWidth || img.width;
+    baseCanvas.height = img.naturalHeight || img.height;
+    editorBaseCtx = baseCanvas.getContext('2d');
+    editorBaseCtx.clearRect(0,0,baseCanvas.width, baseCanvas.height);
+    editorBaseCtx.drawImage(img, 0, 0);
+
+    drawCanvas.width = baseCanvas.width;
+    drawCanvas.height = baseCanvas.height;
+    editorCtx = drawCanvas.getContext('2d');
+    editorCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height);
+
+    editorHistory = [];
+    sigOverlays.forEach(o=>o.el.remove());
+    sigOverlays = [];
+    clearCropSelection();
+    currentTool = 'pen';
+    document.querySelectorAll('.editor-tools .tool-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('.editor-tools .tool-btn[data-tool="pen"]').classList.add('active');
+
+    fitEditorCanvasDisplay();
+    editorModal.classList.add('open');
+  } catch(err){
+    console.error(err);
+    showToast('Could not open the page editor', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function closeEditor(){
+  editorModal.classList.remove('open');
+  sigOverlays.forEach(o=>o.el.remove());
+  sigOverlays = [];
+  editorDoc = null; editorPageId = null;
+}
+
+function pushEditorHistory(){
+  try{
+    editorHistory.push(editorCtx.getImageData(0,0,drawCanvas.width, drawCanvas.height));
+    if(editorHistory.length > 25) editorHistory.shift();
+  } catch(e){ /* ignore snapshot failures */ }
+}
+function undoEditor(){
+  if(editorHistory.length===0) return;
+  const prev = editorHistory.pop();
+  editorCtx.putImageData(prev, 0, 0);
+}
+function clearEditorMarks(){
+  pushEditorHistory();
+  editorCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height);
+}
+
+function getCanvasPoint(e){
+  const rect = drawCanvas.getBoundingClientRect();
+  const scaleX = drawCanvas.width / rect.width;
+  const scaleY = drawCanvas.height / rect.height;
+  return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
+}
+
+const cropSelectionEl = document.getElementById('cropSelection');
+
+function updateCropButtonsVisibility(){
+  const hasSelection = cropSelectionEl.style.display === 'block'
+    && parseFloat(cropSelectionEl.style.width || '0') > 4
+    && parseFloat(cropSelectionEl.style.height || '0') > 4;
+  document.getElementById('applyCropBtn').style.display = hasSelection ? 'inline-flex' : 'none';
+  document.getElementById('cancelCropBtn').style.display = hasSelection ? 'inline-flex' : 'none';
+}
+function clearCropSelection(){
+  cropSelectionEl.style.display = 'none';
+  cropSelectionEl.style.width = '0px';
+  cropSelectionEl.style.height = '0px';
+  updateCropButtonsVisibility();
+}
+function applyCrop(){
+  if(cropSelectionEl.style.display !== 'block') return;
+  const scale = drawCanvas.width / drawCanvas.getBoundingClientRect().width;
+  const x = parseFloat(cropSelectionEl.style.left) * scale;
+  const y = parseFloat(cropSelectionEl.style.top) * scale;
+  const w = parseFloat(cropSelectionEl.style.width) * scale;
+  const h = parseFloat(cropSelectionEl.style.height) * scale;
+  if(w < 4 || h < 4) return;
+
+  bakeSignatureOverlays(); // don't lose in-progress signature placement to the crop
+
+  const newBase = document.createElement('canvas');
+  newBase.width = Math.round(w); newBase.height = Math.round(h);
+  newBase.getContext('2d').drawImage(baseCanvas, x, y, w, h, 0, 0, newBase.width, newBase.height);
+
+  const newDraw = document.createElement('canvas');
+  newDraw.width = Math.round(w); newDraw.height = Math.round(h);
+  newDraw.getContext('2d').drawImage(drawCanvas, x, y, w, h, 0, 0, newDraw.width, newDraw.height);
+
+  baseCanvas.width = newBase.width; baseCanvas.height = newBase.height;
+  editorBaseCtx = baseCanvas.getContext('2d');
+  editorBaseCtx.drawImage(newBase, 0, 0);
+
+  drawCanvas.width = newDraw.width; drawCanvas.height = newDraw.height;
+  editorCtx = drawCanvas.getContext('2d');
+  editorCtx.drawImage(newDraw, 0, 0);
+
+  editorHistory = [];
+  clearCropSelection();
+  fitEditorCanvasDisplay();
+  showToast('Cropped', 'success');
+}
+
+drawCanvas.addEventListener('pointerdown', (e)=>{
+  if(e.target !== drawCanvas) return;
+  if(currentTool === 'crop'){
+    cropDragging = true;
+    const stageRect = editorStage.getBoundingClientRect();
+    cropStartPx = { x: e.clientX - stageRect.left, y: e.clientY - stageRect.top };
+    cropSelectionEl.style.display = 'block';
+    cropSelectionEl.style.left = cropStartPx.x + 'px';
+    cropSelectionEl.style.top = cropStartPx.y + 'px';
+    cropSelectionEl.style.width = '0px';
+    cropSelectionEl.style.height = '0px';
+    drawCanvas.setPointerCapture(e.pointerId);
+    return;
+  }
+  isDrawing = true;
+  pushEditorHistory();
+  lastPoint = getCanvasPoint(e);
+  drawCanvas.setPointerCapture(e.pointerId);
+});
+drawCanvas.addEventListener('pointermove', (e)=>{
+  if(currentTool === 'crop'){
+    if(!cropDragging) return;
+    const stageRect = editorStage.getBoundingClientRect();
+    const curX = e.clientX - stageRect.left;
+    const curY = e.clientY - stageRect.top;
+    const left = Math.min(curX, cropStartPx.x);
+    const top = Math.min(curY, cropStartPx.y);
+    const w = Math.abs(curX - cropStartPx.x);
+    const h = Math.abs(curY - cropStartPx.y);
+    cropSelectionEl.style.left = left + 'px';
+    cropSelectionEl.style.top = top + 'px';
+    cropSelectionEl.style.width = w + 'px';
+    cropSelectionEl.style.height = h + 'px';
+    return;
+  }
+  if(!isDrawing) return;
+  const pt = getCanvasPoint(e);
+  editorCtx.lineJoin = 'round';
+  editorCtx.lineCap = 'round';
+  editorCtx.lineWidth = parseInt(document.getElementById('penWidth').value, 10);
+  if(currentTool === 'eraser'){
+    editorCtx.globalCompositeOperation = 'destination-out';
+    editorCtx.strokeStyle = 'rgba(0,0,0,1)';
+  } else {
+    editorCtx.globalCompositeOperation = 'source-over';
+    editorCtx.strokeStyle = document.getElementById('penColor').value;
+  }
+  editorCtx.beginPath();
+  editorCtx.moveTo(lastPoint.x, lastPoint.y);
+  editorCtx.lineTo(pt.x, pt.y);
+  editorCtx.stroke();
+  lastPoint = pt;
+});
+['pointerup','pointerleave','pointercancel'].forEach(evt=>{
+  drawCanvas.addEventListener(evt, ()=>{
+    if(currentTool === 'crop'){ cropDragging = false; updateCropButtonsVisibility(); return; }
+    isDrawing = false; lastPoint = null;
+  });
+});
+
+document.querySelectorAll('.editor-tools .tool-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.editor-tools .tool-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+    if(currentTool !== 'crop') clearCropSelection();
+  });
+});
+document.getElementById('undoBtn').addEventListener('click', undoEditor);
+document.getElementById('clearBtn').addEventListener('click', clearEditorMarks);
+document.getElementById('applyCropBtn').addEventListener('click', applyCrop);
+document.getElementById('cancelCropBtn').addEventListener('click', clearCropSelection);
+document.getElementById('zoomInBtn').addEventListener('click', ()=>zoomEditor(1.25));
+document.getElementById('zoomOutBtn').addEventListener('click', ()=>zoomEditor(0.8));
+document.getElementById('zoomResetBtn').addEventListener('click', resetEditorZoom);
+document.getElementById('editorCancel').addEventListener('click', closeEditor);
+document.getElementById('editorSave').addEventListener('click', saveEditor);
+window.addEventListener('resize', ()=>{
+  if(editorModal.classList.contains('open')) fitEditorCanvasDisplay();
+});
+
+function bakeSignatureOverlays(){
+  if(sigOverlays.length === 0) return;
+  const scale = drawCanvas.width / drawCanvas.getBoundingClientRect().width;
+  const stageRect = editorStage.getBoundingClientRect();
+  sigOverlays.forEach(o=>{
+    const elRect = o.el.getBoundingClientRect();
+    const x = (elRect.left - stageRect.left) * scale;
+    const y = (elRect.top - stageRect.top) * scale;
+    const w = elRect.width * scale;
+    const h = elRect.height * scale;
+    editorCtx.drawImage(o.img, x, y, w, h);
+    o.el.remove();
+  });
+  sigOverlays = [];
+}
+
+async function saveEditor(){
+  bakeSignatureOverlays();
+  const out = document.createElement('canvas');
+  out.width = baseCanvas.width;
+  out.height = baseCanvas.height;
+  const octx = out.getContext('2d');
+  octx.drawImage(baseCanvas, 0, 0);
+  octx.drawImage(drawCanvas, 0, 0);
+  const dataUrl = out.toDataURL('image/png');
+
+  const pg = editorDoc.pages.find(p=>p.id===editorPageId);
+  pg.annotatedDataUrl = dataUrl;
+  pg.thumb = dataUrl;
+  pg.rotation = 0; // any prior rotation is now baked into the image
+  closeEditor();
+  render();
+  showToast('Page updated', 'success');
+}
+
+/* ---------------- Signature: draw once, place & reuse ---------------- */
+const sigPadModal = document.getElementById('sigPadModal');
+const sigPadCanvas = document.getElementById('sigPadCanvas');
+const sigPadCtx = sigPadCanvas.getContext('2d');
+let sigDrawing = false, sigLast = null;
+let pendingSignaturePlacement = false; // true when the pad was opened from "Insert signature"
+
+function openSignaturePad(){
+  sigPadCtx.clearRect(0,0,sigPadCanvas.width, sigPadCanvas.height);
+  sigPadModal.classList.add('open');
+}
+function closeSignaturePad(){
+  sigPadModal.classList.remove('open');
+  pendingSignaturePlacement = false;
+}
+function sigPadPoint(e){
+  const rect = sigPadCanvas.getBoundingClientRect();
+  return { x:(e.clientX-rect.left)*(sigPadCanvas.width/rect.width), y:(e.clientY-rect.top)*(sigPadCanvas.height/rect.height) };
+}
+sigPadCanvas.addEventListener('pointerdown', (e)=>{
+  sigDrawing = true;
+  sigLast = sigPadPoint(e);
+  sigPadCanvas.setPointerCapture(e.pointerId);
+});
+sigPadCanvas.addEventListener('pointermove', (e)=>{
+  if(!sigDrawing) return;
+  const pt = sigPadPoint(e);
+  sigPadCtx.lineJoin = 'round';
+  sigPadCtx.lineCap = 'round';
+  sigPadCtx.lineWidth = 2.6;
+  sigPadCtx.strokeStyle = '#0B2545';
+  sigPadCtx.beginPath();
+  sigPadCtx.moveTo(sigLast.x, sigLast.y);
+  sigPadCtx.lineTo(pt.x, pt.y);
+  sigPadCtx.stroke();
+  sigLast = pt;
+});
+['pointerup','pointerleave','pointercancel'].forEach(evt=>{
+  sigPadCanvas.addEventListener(evt, ()=>{ sigDrawing = false; });
+});
+document.getElementById('sigPadClear').addEventListener('click', ()=>{
+  sigPadCtx.clearRect(0,0,sigPadCanvas.width, sigPadCanvas.height);
+});
+document.getElementById('sigPadCancel').addEventListener('click', closeSignaturePad);
+document.getElementById('sigPadSave').addEventListener('click', async ()=>{
+  const dataUrl = makeSignatureTransparent(sigPadCanvas);
+  await saveSignatureToStore(dataUrl);
+  closeSignaturePad();
+  await placeSignatureOverlay(dataUrl);
+  showToast('Signature saved for reuse', 'success');
+});
+
+function makeSignatureTransparent(canvas){
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0,0,canvas.width, canvas.height);
+  const d = imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) d[i+3] = 0; // near-white -> transparent
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+async function placeSignatureOverlay(dataUrl){
+  const img = await loadImage(dataUrl);
+  const stageRect = editorStage.getBoundingClientRect();
+  const initW = Math.min(180, stageRect.width * 0.4);
+  const initH = initW * (img.naturalHeight / img.naturalWidth);
+
+  const el = document.createElement('div');
+  el.className = 'sig-overlay';
+  el.style.width = initW + 'px';
+  el.style.height = initH + 'px';
+  el.style.left = ((stageRect.width - initW) / 2) + 'px';
+  el.style.top = ((stageRect.height - initH) / 2) + 'px';
+  el.innerHTML = `<img src="${dataUrl}" draggable="false" alt="Signature" /><div class="sig-resize-handle"></div><button class="sig-remove" type="button" title="Remove">&times;</button>`;
+  editorStage.appendChild(el);
+
+  const record = { el, img };
+  sigOverlays.push(record);
+
+  let dragging = false, dragStartX = 0, dragStartY = 0, startLeft = 0, startTop = 0;
+  el.querySelector('img').addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    startLeft = parseFloat(el.style.left); startTop = parseFloat(el.style.top);
+    e.target.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  });
+  window.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    el.style.left = (startLeft + (e.clientX - dragStartX)) + 'px';
+    el.style.top = (startTop + (e.clientY - dragStartY)) + 'px';
+  });
+  window.addEventListener('pointerup', ()=>{ dragging = false; });
+
+  let resizing = false, rStartX = 0, startW = 0, startH = 0;
+  el.querySelector('.sig-resize-handle').addEventListener('pointerdown', (e)=>{
+    resizing = true;
+    rStartX = e.clientX;
+    startW = el.offsetWidth; startH = el.offsetHeight;
+    e.target.setPointerCapture(e.pointerId);
+    e.stopPropagation(); e.preventDefault();
+  });
+  window.addEventListener('pointermove', (e)=>{
+    if(!resizing) return;
+    const dx = e.clientX - rStartX;
+    const newW = Math.max(40, startW + dx);
+    const newH = newW * (img.naturalHeight / img.naturalWidth);
+    el.style.width = newW + 'px';
+    el.style.height = newH + 'px';
+  });
+  window.addEventListener('pointerup', ()=>{ resizing = false; });
+
+  el.querySelector('.sig-remove').addEventListener('click', ()=>{
+    el.remove();
+    sigOverlays = sigOverlays.filter(o=>o!==record);
+  });
+}
+
+document.getElementById('addSignatureBtn').addEventListener('click', async ()=>{
+  const sig = await getSavedSignature();
+  if(!sig){
+    showToast('No saved signature yet — draw or upload one first', 'error');
+    return;
+  }
+  placeSignatureOverlay(sig);
+});
+document.getElementById('redrawSignatureBtn').addEventListener('click', ()=>{
+  pendingSignaturePlacement = true;
+  openSignaturePad();
+});
+
+/* ---- Signature via image upload, with automatic background removal ---- */
+let sigUploadOriginalImg = null;
+
+function removeNearWhiteBackground(canvas, threshold){
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imgData.data;
+  for(let i=0; i<d.length; i+=4){
+    if(d[i] >= threshold && d[i+1] >= threshold && d[i+2] >= threshold) d[i+3] = 0;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function renderSigUploadPreview(){
+  if(!sigUploadOriginalImg) return;
+  const canvas = document.getElementById('sigUploadCanvas');
+  const maxW = 480, maxH = 220;
+  const ratio = Math.min(maxW / sigUploadOriginalImg.naturalWidth, maxH / sigUploadOriginalImg.naturalHeight, 1);
+  canvas.width = Math.max(1, Math.round(sigUploadOriginalImg.naturalWidth * ratio));
+  canvas.height = Math.max(1, Math.round(sigUploadOriginalImg.naturalHeight * ratio));
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(sigUploadOriginalImg, 0, 0, canvas.width, canvas.height);
+  const threshold = parseInt(document.getElementById('sigUploadThreshold').value, 10);
+  removeNearWhiteBackground(canvas, threshold);
+}
+
+function openSigUploadModal(){
+  renderSigUploadPreview();
+  document.getElementById('sigUploadModal').classList.add('open');
+}
+function closeSigUploadModal(){
+  document.getElementById('sigUploadModal').classList.remove('open');
+}
+
+document.getElementById('uploadSignatureBtn').addEventListener('click', ()=>{
+  document.getElementById('sigUploadInput').click();
+});
+document.getElementById('sigUploadChooseAnother').addEventListener('click', ()=>{
+  document.getElementById('sigUploadInput').click();
+});
+document.getElementById('sigUploadInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const dataUrl = await new Promise((res, rej)=>{
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+    sigUploadOriginalImg = await loadImage(dataUrl);
+    openSigUploadModal();
+  } catch(err){
+    console.error(err);
+    showToast("Couldn't read that image", 'error');
+  }
+});
+document.getElementById('sigUploadThreshold').addEventListener('input', renderSigUploadPreview);
+document.getElementById('sigUploadCancel').addEventListener('click', closeSigUploadModal);
+document.getElementById('sigUploadSave').addEventListener('click', async ()=>{
+  if(!sigUploadOriginalImg) return;
+  // Re-process at the image's full native resolution (not the small preview) for a crisp placed signature.
+  const full = document.createElement('canvas');
+  full.width = sigUploadOriginalImg.naturalWidth;
+  full.height = sigUploadOriginalImg.naturalHeight;
+  full.getContext('2d').drawImage(sigUploadOriginalImg, 0, 0);
+  const threshold = parseInt(document.getElementById('sigUploadThreshold').value, 10);
+  removeNearWhiteBackground(full, threshold);
+  const dataUrl = full.toDataURL('image/png');
+  await saveSignatureToStore(dataUrl);
+  closeSigUploadModal();
+  await placeSignatureOverlay(dataUrl);
+  showToast('Signature saved for reuse', 'success');
 });
 
 /* ---------------- PDF export ---------------- */
@@ -1492,6 +2338,14 @@ function dataUrlToBytes(dataUrl){
 async function buildPdfForDocumentSafe(doc){
   const outDoc = await PDFDocument.create();
   for(const pg of doc.pages){
+    if(pg.annotatedDataUrl){
+      // Marked-up pages are always saved as flattened PNGs, rotation already baked in.
+      const bytes = dataUrlToBytes(pg.annotatedDataUrl);
+      const img = await outDoc.embedPng(bytes);
+      const page = outDoc.addPage([img.width, img.height]);
+      page.drawImage(img, { x:0, y:0, width: img.width, height: img.height });
+      continue;
+    }
     const fileEntry = fileStore[pg.fileId];
     if(fileEntry.kind === 'pdf'){
       const srcDoc = await getPdfLibDocFor(pg.fileId);
@@ -1611,7 +2465,7 @@ document.getElementById('addPagesInput').addEventListener('change', (e)=>{
 });
 document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelected);
 document.getElementById('downloadZipBtn').addEventListener('click', downloadAllZip);
-document.getElementById('studentName').addEventListener('input', ()=>{ renderDocList(); renderWorkspace(); renderDownloadBar(); });
+document.getElementById('studentName').addEventListener('input', ()=>{ renderDocList(); renderWorkspace(); renderDownloadBar(); scheduleSave(); });
 document.getElementById('toolbarTitleInput').addEventListener('input', (e)=>{
   const doc = documents.find(d=>d.id===selectedDocId);
   if(!doc) return;
@@ -1619,11 +2473,23 @@ document.getElementById('toolbarTitleInput').addEventListener('input', (e)=>{
   document.getElementById('toolbarFilename').textContent = filenameFor(doc);
   renderDocList();
   renderDownloadBar();
+  scheduleSave();
 });
 document.getElementById('toolbarEditBtn').addEventListener('click', ()=>{
   const el = document.getElementById('toolbarTitleInput');
   el.focus();
   el.select();
+});
+document.getElementById('clearDataBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear all uploaded files and documents on this device? This cannot be undone. Your saved signature will be kept.')) return;
+  documents = [];
+  for(const k in fileStore) delete fileStore[k];
+  selectedDocId = null;
+  document.getElementById('studentName').value = '';
+  clearTimeout(saveTimer);
+  try{ await idbDelete('state'); } catch(e){ /* ignore */ }
+  render();
+  showToast('Cleared — starting fresh', 'success');
 });
 async function autoDetectAllDocs(){
   if(documents.length === 0){ showToast('No documents to scan yet', 'error'); return; }
@@ -1670,7 +2536,12 @@ dz.addEventListener('drop', (e)=>{
   if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
 });
 
-render();
+/* ---------------- Startup: restore previous session, then render ---------------- */
+(async function init(){
+  const restored = await restoreState().catch(err=>{ console.error(err); return false; });
+  render();
+  if(restored) showToast('Restored your previous session', 'success');
+})();
 </script>
 </body>
 </html>
