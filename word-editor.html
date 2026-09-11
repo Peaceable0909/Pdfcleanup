@@ -116,13 +116,28 @@
     width: 816px; max-width:100%; min-height: 1056px; background:#fff;
     box-shadow: 0 4px 24px rgba(16,24,40,0.12); padding: 96px 88px;
     font-family:'Georgia', serif; font-size:15px; line-height:1.6; color:#161a22;
-    outline:none;
+    outline:none; position:relative;
   }
   .page:empty::before{ content: attr(data-placeholder); color:#9aa2b1; font-style:italic; }
   .page img{ max-width:100%; }
   .page table{ border-collapse:collapse; }
   .page td, .page th{ border:1px solid #999; padding:5px 8px; }
-  .sig-inline{ vertical-align:middle; }
+
+  /* A signature placed as a free-floating stamp — drag anywhere on the page, resize from the corner */
+  .sig-floating{ position:absolute; cursor:grab; touch-action:none; z-index:5; }
+  .sig-floating:active{ cursor:grabbing; }
+  .sig-floating img{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+  .sig-floating:hover{ outline:1.5px dashed var(--stamp); outline-offset:3px; }
+  .sig-floating .sig-resize-handle{
+    position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background: var(--stamp);
+    border-radius:50%; cursor:nwse-resize; border:2px solid #fff; display:none;
+  }
+  .sig-floating .sig-remove{
+    position:absolute; top:-11px; right:-11px; width:20px; height:20px; border-radius:50%;
+    background:#B42318; color:#fff; border:2px solid #fff; font-size:13px; line-height:1; cursor:pointer; padding:0;
+    display:none; align-items:center; justify-content:center;
+  }
+  .sig-floating:hover .sig-resize-handle, .sig-floating:hover .sig-remove{ display:flex; }
 
   .empty-state{
     margin: 40px auto; max-width:520px; text-align:center; color: var(--ink-soft);
@@ -494,6 +509,7 @@ async function restoreDocState(){
   if(!saved) return false;
   docTitleInput.value = saved.title || '';
   pageEditor.innerHTML = saved.html || '';
+  rewireRestoredSignatures();
   return true;
 }
 
@@ -598,20 +614,99 @@ document.getElementById('imageInput').addEventListener('change', async (e)=>{
   insertHtmlAtCursor(`<img src="${dataUrl}" style="max-width:100%;" />`);
 });
 
-/* ---------------- Signature: insert saved / draw / upload+crop+bg-removal ---------------- */
-async function insertSignatureAtCursor(dataUrl){
+/* ---------------- Signature: a free-floating, draggable stamp (not part of the text flow) ---------------- */
+function computeDefaultDropPosition(initW, initH){
+  const canvasArea = document.querySelector('.canvas-area');
+  const pageRect = pageEditor.getBoundingClientRect();
+  const areaRect = canvasArea.getBoundingClientRect();
+  const visibleTop = Math.max(40, (areaRect.top - pageRect.top) + 60);
+  const left = Math.max(0, Math.min(pageRect.width - initW, pageRect.width / 2 - initW / 2));
+  return { left, top: visibleTop };
+}
+
+function wireFloatingSignature(wrapper){
+  const img = wrapper.querySelector('img');
+  const handle = wrapper.querySelector('.sig-resize-handle');
+  const removeBtn = wrapper.querySelector('.sig-remove');
+
+  let dragging = false, dragStartX = 0, dragStartY = 0, startLeft = 0, startTop = 0;
+  img.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    startLeft = parseFloat(wrapper.style.left) || 0;
+    startTop = parseFloat(wrapper.style.top) || 0;
+    img.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  img.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const maxLeft = Math.max(0, pageEditor.clientWidth - wrapper.offsetWidth);
+    const newLeft = clamp(startLeft + (e.clientX - dragStartX), 0, maxLeft);
+    const newTop = startTop + (e.clientY - dragStartY); // unclamped vertically — page can scroll/grow
+    wrapper.style.left = newLeft + 'px';
+    wrapper.style.top = Math.max(0, newTop) + 'px';
+  });
+  ['pointerup','pointercancel'].forEach(evt=> img.addEventListener(evt, ()=>{
+    if(dragging){ dragging = false; scheduleSave(); }
+  }));
+
+  let resizing = false, rStartX = 0, startW = 0, startH = 0;
+  handle.addEventListener('pointerdown', (e)=>{
+    resizing = true;
+    rStartX = e.clientX;
+    startW = wrapper.offsetWidth; startH = wrapper.offsetHeight;
+    handle.setPointerCapture(e.pointerId);
+    e.stopPropagation(); e.preventDefault();
+  });
+  handle.addEventListener('pointermove', (e)=>{
+    if(!resizing) return;
+    const dx = e.clientX - rStartX;
+    const newW = Math.max(30, startW + dx);
+    const aspect = startH / startW;
+    wrapper.style.width = newW + 'px';
+    wrapper.style.height = Math.round(newW * aspect) + 'px';
+  });
+  ['pointerup','pointercancel'].forEach(evt=> handle.addEventListener(evt, ()=>{
+    if(resizing){ resizing = false; scheduleSave(); }
+  }));
+
+  removeBtn.addEventListener('click', ()=>{ wrapper.remove(); scheduleSave(); });
+}
+
+async function addFloatingSignature(dataUrl){
   const img = await loadImage(dataUrl);
   const initW = 180;
   const initH = Math.round(initW * (img.naturalHeight / img.naturalWidth));
-  const html = `<span class="sig-inline" contenteditable="false" style="display:inline-block; width:${initW}px; height:${initH}px; resize:both; overflow:hidden;"><img src="${dataUrl}" style="width:100%; height:100%; display:block; pointer-events:none;" draggable="false" alt="Signature" /></span>&nbsp;`;
-  insertHtmlAtCursor(html);
+  const pos = computeDefaultDropPosition(initW, initH);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'sig-floating';
+  wrapper.contentEditable = 'false';
+  wrapper.style.left = pos.left + 'px';
+  wrapper.style.top = pos.top + 'px';
+  wrapper.style.width = initW + 'px';
+  wrapper.style.height = initH + 'px';
+  wrapper.innerHTML = `<img src="${dataUrl}" draggable="false" alt="Signature" /><div class="sig-resize-handle" title="Resize"></div><button class="sig-remove" type="button" title="Remove">&times;</button>`;
+  pageEditor.appendChild(wrapper);
+  wireFloatingSignature(wrapper);
+  scheduleSave();
+}
+
+// Re-wire drag/resize behavior for signatures restored from a saved session,
+// since their event listeners don't survive being serialized as innerHTML.
+function rewireRestoredSignatures(){
+  pageEditor.querySelectorAll('.sig-floating').forEach(wrapper=>{
+    if(wrapper.dataset.wired) return;
+    wrapper.dataset.wired = '1';
+    wireFloatingSignature(wrapper);
+  });
 }
 
 document.getElementById('insertSavedSigBtn').addEventListener('mousedown', saveSelection);
 document.getElementById('insertSavedSigBtn').addEventListener('click', async ()=>{
   const sig = await getSavedSignature();
   if(!sig){ showToast('No saved signature yet — draw or upload one first', 'error'); return; }
-  await insertSignatureAtCursor(sig);
+  await addFloatingSignature(sig);
 });
 
 /* ---- Draw signature ---- */
@@ -648,7 +743,7 @@ document.getElementById('sigPadSave').addEventListener('click', async ()=>{
   const dataUrl = makeSignatureTransparent(sigPadCanvas);
   await saveSignatureToStore(dataUrl);
   closeSigPad();
-  await insertSignatureAtCursor(dataUrl);
+  await addFloatingSignature(dataUrl);
   showToast('Signature saved for reuse', 'success');
 });
 function makeSignatureTransparent(canvas){
@@ -742,7 +837,7 @@ document.getElementById('sigUploadSave').addEventListener('click', async ()=>{
   const dataUrl = finalCanvas.toDataURL('image/png');
   await saveSignatureToStore(dataUrl);
   closeSigUploadModal();
-  await insertSignatureAtCursor(dataUrl);
+  await addFloatingSignature(dataUrl);
   showToast('Signature saved for reuse', 'success');
 });
 
