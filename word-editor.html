@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Word Document Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  :root{
+    --paper: #F4F6FA;
+    --paper-dim: #EEF1F6;
+    --ink: #1F2430;
+    --ink-soft: #667085;
+    --tan: #E4EBFC;
+    --tan-dark: #C6D6F5;
+    --rule: #E4E7EC;
+    --stamp: #2F63E8;
+    --stamp-dim: #6690F5;
+    --sage: #16A34A;
+    --sage-dim: #E8F7EE;
+    --paper-white: #FFFFFF;
+    --navy: #0B2545;
+    --navy-dark: #081B33;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  ::selection{ background: var(--tan); }
+  .app{ display:flex; flex-direction:column; min-height:100vh; }
+
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:20px; padding:14px 24px; flex-wrap:wrap;
+    background: linear-gradient(180deg, var(--navy), var(--navy-dark));
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .brand-icon{
+    width:34px; height:34px; border-radius:8px; background: rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0;
+  }
+  .brand .brand-icon svg{ width:17px; height:17px; }
+  .brand .brand-text{ display:flex; flex-direction:column; gap:1px; }
+  .brand .mark{
+    font-family:'Inter', sans-serif; font-weight:700; font-size:16px; letter-spacing:0.01em;
+    color:#fff; text-transform:uppercase;
+  }
+  .brand .sub{ font-family:'Inter', sans-serif; font-size:11.5px; color: rgba(255,255,255,0.65); }
+
+  .title-field{
+    display:flex; align-items:baseline; gap:10px;
+    border-bottom: 2px solid rgba(255,255,255,0.25);
+    padding: 4px 2px 8px 2px; min-width: 240px; flex:1; max-width:420px;
+  }
+  .title-field label{ font-family:'Inter', sans-serif; font-size:11px; color: rgba(255,255,255,0.65); white-space:nowrap; }
+  .title-field input{
+    border:none; background:transparent; outline:none;
+    font-family:'Inter', sans-serif; font-size:15px; font-weight:500; color:#fff; width:100%;
+  }
+  .title-field input::placeholder{ color: rgba(255,255,255,0.45); font-style:italic; }
+
+  .header-right{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .save-indicator{ display:flex; align-items:center; gap:6px; font-size:11.5px; color: rgba(255,255,255,0.55); font-family:'Inter',sans-serif; }
+  .save-indicator .dot{ width:6px; height:6px; border-radius:50%; background: var(--sage); transition: background .2s ease, opacity .2s ease; }
+  .save-indicator.saving .dot{ background: var(--stamp-dim); animation: dotPulse 1s ease-in-out infinite; }
+  @keyframes dotPulse{ 0%,100%{ opacity:0.4; } 50%{ opacity:1; } }
+  .link-btn{
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.2);
+    font-family:'Inter',sans-serif; font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:7px;
+    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; transition: background .15s ease;
+  }
+  .link-btn:hover{ background: rgba(255,255,255,0.16); }
+
+  .toolbar{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    padding: 10px 20px; background: var(--paper-white); border-bottom: 1px solid var(--rule);
+  }
+  .toolbar .grp{ display:flex; align-items:center; gap:4px; padding-right:10px; margin-right:6px; border-right:1px solid var(--rule); }
+  .toolbar .grp:last-child{ border-right:none; }
+  .tbtn{
+    border:1px solid transparent; background:transparent; color: var(--ink); cursor:pointer;
+    padding:7px 10px; border-radius:7px; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    display:inline-flex; align-items:center; gap:6px; transition: background .15s ease, border-color .15s ease;
+  }
+  .tbtn:hover{ background: var(--tan); }
+  .tbtn.active{ background: var(--tan); border-color: var(--stamp-dim); color: var(--stamp); }
+  .tbtn svg{ width:15px; height:15px; display:block; }
+  select.tsel{
+    border:1px solid var(--rule); background: var(--paper-white); color: var(--ink);
+    font-family:'Inter',sans-serif; font-size:12.5px; padding:6px 8px; border-radius:7px; cursor:pointer;
+  }
+  .tbtn-primary{
+    background: linear-gradient(180deg, #3D6FEC, var(--stamp)); color:#fff; border:none;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:7px; cursor:pointer;
+    box-shadow: 0 1px 2px rgba(47,99,232,0.35);
+  }
+  .tbtn-primary:hover{ background: linear-gradient(180deg, #3564DB, #2350C4); }
+  .tbtn-secondary{
+    background: var(--paper-white); color: var(--ink); border:1px solid var(--rule);
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:500; padding:8px 14px; border-radius:7px; cursor:pointer;
+  }
+  .tbtn-secondary:hover{ background: var(--tan); border-color: var(--stamp-dim); }
+
+  .canvas-area{ flex:1; overflow:auto; padding: 36px 20px; display:flex; justify-content:center; background: var(--paper-dim); }
+  .page{
+    width: 816px; max-width:100%; min-height: 1056px; background:#fff;
+    box-shadow: 0 4px 24px rgba(16,24,40,0.12); padding: 96px 88px;
+    font-family:'Georgia', serif; font-size:15px; line-height:1.6; color:#161a22;
+    outline:none;
+  }
+  .page:empty::before{ content: attr(data-placeholder); color:#9aa2b1; font-style:italic; }
+  .page img{ max-width:100%; }
+  .page table{ border-collapse:collapse; }
+  .page td, .page th{ border:1px solid #999; padding:5px 8px; }
+  .sig-inline{ vertical-align:middle; }
+
+  .empty-state{
+    margin: 40px auto; max-width:520px; text-align:center; color: var(--ink-soft);
+  }
+  .empty-state h3{ font-family:'Inter',sans-serif; color: var(--ink); margin-bottom:6px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%;
+    background: var(--ink); color: var(--paper-white); padding:10px 18px;
+    border-radius:8px; font-size:13px; z-index:100; opacity:0; pointer-events:none;
+    transform: translateX(-50%) translateY(16px) scale(0.92);
+    transition: opacity .25s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
+    max-width: 80vw; text-align:center; box-shadow: 0 4px 16px rgba(16,24,40,0.25);
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0) scale(1); }
+  .toast.error{ background:#B42318; }
+  .toast.success{ background:#16A34A; }
+
+  .loading-overlay{
+    position:fixed; inset:0; background: rgba(11,37,69,0.45); backdrop-filter: blur(2px);
+    display:none; align-items:center; justify-content:center; z-index: 200;
+  }
+  .loading-overlay.show{ display:flex; }
+  .loading-card{
+    background: var(--paper-white); border-radius:16px; padding: 26px 36px;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    box-shadow: 0 20px 60px rgba(11,37,69,0.35); min-width:220px;
+  }
+  .loading-card .loading-text{ font-family:'Inter',sans-serif; font-size:14px; font-weight:700; }
+  .spinner{
+    width:34px; height:34px; border-radius:50%; border:3px solid var(--tan-dark); border-top-color: var(--stamp);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .fatal-error{ position:fixed; inset:0; background: var(--paper); z-index:500; display:none; align-items:center; justify-content:center; padding:24px; }
+  .fatal-error.show{ display:flex; }
+  .fatal-error .fatal-card{ background:#fff; border:1px solid var(--rule); border-radius:16px; padding:32px; max-width:440px; text-align:center; box-shadow:0 20px 60px rgba(16,24,40,0.15); }
+  .fatal-error h2{ margin:0 0 8px; font-family:'Inter',sans-serif; font-size:17px; }
+  .fatal-error p{ margin:0 0 18px; font-size:13.5px; color: var(--ink-soft); line-height:1.5; }
+
+  /* ---- Signature pad / upload modals (shared pattern with the PDF tool) ---- */
+  .sig-pad-modal{ position:fixed; inset:0; background: rgba(11,37,69,0.55); z-index:320; display:none; align-items:center; justify-content:center; padding:20px; }
+  .sig-pad-modal.open{ display:flex; }
+  .sig-pad-card{ background:#fff; border-radius:14px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; max-width:94vw; }
+  .sig-pad-card h3{ margin:0 0 4px; font-family:'Inter',sans-serif; }
+  .sig-pad-card p.hint{ margin:0 0 14px; font-size:12px; color: var(--ink-soft); }
+  #sigPadCanvas{ border:1.5px dashed var(--tan-dark); border-radius:8px; background:#fff; touch-action:none; cursor:crosshair; max-width:100%; }
+  .sig-pad-actions{ display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  #sigUploadCanvas{
+    border:1.5px solid var(--rule); border-radius:8px; max-width:100%;
+    background-image: linear-gradient(45deg, #e2e5ea 25%, transparent 25%), linear-gradient(-45deg, #e2e5ea 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e5ea 75%), linear-gradient(-45deg, transparent 75%, #e2e5ea 75%);
+    background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  .sig-threshold-row{ margin-top:10px; display:flex; align-items:center; gap:10px; justify-content:center; }
+  .sig-threshold-row label{ font-size:12px; color: var(--ink-soft); font-family:'Inter',sans-serif; }
+  .sig-upload-stage{ position:relative; display:inline-block; overflow:hidden; border-radius:8px; max-width:100%; }
+
+  .crop-box{
+    position:absolute; top:0; left:0; display:none;
+    border:1.5px dashed #fff; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+    cursor: move; touch-action:none;
+  }
+  .crop-box .crop-handle{ position:absolute; background:#fff; border:2px solid var(--stamp); touch-action:none; }
+  .crop-box .crop-handle.edge-h{ width:28px; height:9px; border-radius:5px; left:50%; transform:translate(-50%,-50%); }
+  .crop-box .crop-handle.edge-v{ width:9px; height:28px; border-radius:5px; top:50%; transform:translate(-50%,-50%); }
+  .crop-box .handle-top{ top:0; cursor: ns-resize; }
+  .crop-box .handle-bottom{ top:100%; cursor: ns-resize; }
+  .crop-box .handle-left{ left:0; cursor: ew-resize; }
+  .crop-box .handle-right{ left:100%; cursor: ew-resize; }
+  .crop-box .crop-handle.corner{ width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); cursor: nwse-resize; }
+  .crop-box .corner-tl{ top:0; left:0; }
+  .crop-box .corner-br{ top:100%; left:100%; }
+
+  @media (max-width: 760px){
+    .page{ padding: 48px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h6M9 16h6M9 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="mark">Word Document Editor</div>
+        <div class="sub">Upload, edit text, and sign — separate from the PDF tool</div>
+      </div>
+    </div>
+    <div class="title-field">
+      <label for="docTitle">Title</label>
+      <input id="docTitle" type="text" placeholder="Untitled document" />
+    </div>
+    <div class="header-right">
+      <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
+        <span class="dot"></span><span id="saveIndicatorText">Saved</span>
+      </div>
+      <a class="link-btn" href="app.html">PDF tool &rarr;</a>
+      <button class="link-btn" id="clearDocBtn" type="button">Start over</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="grp">
+      <button class="tbtn-secondary" id="uploadDocxBtn" type="button">Upload .docx</button>
+      <input type="file" id="docxInput" accept=".docx" style="display:none" />
+      <button class="tbtn-secondary" id="newDocBtn" type="button">New</button>
+    </div>
+    <div class="grp">
+      <select class="tsel" id="blockFormatSelect" title="Paragraph style">
+        <option value="P">Paragraph</option>
+        <option value="H1">Heading 1</option>
+        <option value="H2">Heading 2</option>
+        <option value="H3">Heading 3</option>
+      </select>
+      <select class="tsel" id="fontSizeSelect" title="Font size">
+        <option value="2">Small</option>
+        <option value="3" selected>Normal</option>
+        <option value="4">Medium</option>
+        <option value="5">Large</option>
+        <option value="6">Huge</option>
+      </select>
+    </div>
+    <div class="grp">
+      <button class="tbtn" data-cmd="bold" title="Bold"><b>B</b></button>
+      <button class="tbtn" data-cmd="italic" title="Italic"><i>I</i></button>
+      <button class="tbtn" data-cmd="underline" title="Underline"><u>U</u></button>
+      <button class="tbtn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+    </div>
+    <div class="grp">
+      <button class="tbtn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
+      <button class="tbtn" data-cmd="justifyCenter" title="Align center">&#8596;</button>
+      <button class="tbtn" data-cmd="justifyRight" title="Align right">&#8677;</button>
+    </div>
+    <div class="grp">
+      <button class="tbtn" data-cmd="insertUnorderedList" title="Bulleted list">&bull; list</button>
+      <button class="tbtn" data-cmd="insertOrderedList" title="Numbered list">1. list</button>
+      <button class="tbtn" data-cmd="outdent" title="Decrease indent">&larr;&#124;</button>
+      <button class="tbtn" data-cmd="indent" title="Increase indent">&#124;&rarr;</button>
+    </div>
+    <div class="grp">
+      <button class="tbtn" data-cmd="undo" title="Undo">&#8630; Undo</button>
+      <button class="tbtn" data-cmd="redo" title="Redo">&#8631; Redo</button>
+    </div>
+    <div class="grp">
+      <button class="tbtn-secondary" id="insertImageBtn" type="button">Insert image</button>
+      <input type="file" id="imageInput" accept="image/*" style="display:none" />
+      <button class="tbtn-secondary" id="insertSavedSigBtn" type="button">Insert signature</button>
+      <button class="tbtn-secondary" id="uploadSigBtn" type="button">Upload signature</button>
+      <button class="tbtn-secondary" id="drawSigBtn" type="button">Draw signature</button>
+    </div>
+    <div class="grp" style="margin-right:0; border-right:none;">
+      <button class="tbtn-secondary" id="downloadDocBtn" type="button">Download as Word (.doc)</button>
+      <button class="tbtn-primary" id="downloadPdfBtn" type="button">Download as PDF</button>
+    </div>
+  </div>
+
+  <div class="canvas-area">
+    <div class="page" id="pageEditor" contenteditable="true" data-placeholder="Start typing, or upload a .docx to begin editing it…"></div>
+  </div>
+</div>
+
+<!-- ---------- Signature pad: draw once, reused (and persisted) afterwards ---------- -->
+<div class="sig-pad-modal" id="sigPadModal">
+  <div class="sig-pad-card">
+    <h3>Draw your signature</h3>
+    <p class="hint">This is saved on this device and reused next time — shared with the PDF tool too.</p>
+    <canvas id="sigPadCanvas" width="480" height="180"></canvas>
+    <div class="sig-pad-actions">
+      <button class="tbtn-secondary" id="sigPadClear" type="button">Clear</button>
+      <button class="tbtn-secondary" id="sigPadCancel" type="button">Cancel</button>
+      <button class="tbtn-primary" id="sigPadSave" type="button">Save signature</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Signature upload: pick an image, crop it, background removed automatically ---------- -->
+<input type="file" id="sigUploadInput" accept="image/*" style="display:none" />
+<div class="sig-pad-modal" id="sigUploadModal">
+  <div class="sig-pad-card">
+    <h3>Upload a signature image</h3>
+    <p class="hint">Crop to just the signature, then adjust the background removal if needed.</p>
+    <div class="sig-upload-stage" id="sigUploadStage">
+      <canvas id="sigUploadCanvas" width="480" height="220"></canvas>
+      <div class="crop-box" id="sigCropBox" style="display:block">
+        <div class="crop-handle edge-h handle-top" data-handle="top"></div>
+        <div class="crop-handle edge-h handle-bottom" data-handle="bottom"></div>
+        <div class="crop-handle edge-v handle-left" data-handle="left"></div>
+        <div class="crop-handle edge-v handle-right" data-handle="right"></div>
+        <div class="crop-handle corner corner-tl" data-handle="tl"></div>
+        <div class="crop-handle corner corner-br" data-handle="br"></div>
+      </div>
+    </div>
+    <div class="sig-threshold-row">
+      <label for="sigUploadThreshold">Background sensitivity</label>
+      <input type="range" id="sigUploadThreshold" min="150" max="250" value="235" />
+    </div>
+    <div class="sig-pad-actions">
+      <button class="tbtn-secondary" id="sigUploadResetCrop" type="button">Reset crop</button>
+      <button class="tbtn-secondary" id="sigUploadChooseAnother" type="button">Choose another image</button>
+      <button class="tbtn-secondary" id="sigUploadCancel" type="button">Cancel</button>
+      <button class="tbtn-primary" id="sigUploadSave" type="button">Save signature</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Working…</div>
+  </div>
+</div>
+
+<div class="fatal-error" id="fatalError">
+  <div class="fatal-card">
+    <h2>Couldn't load the editor</h2>
+    <p id="fatalErrorText">A required component failed to load, likely due to a network or connection issue.</p>
+    <button class="tbtn-primary" onclick="location.reload()" type="button">Reload page</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- Startup library check ---------------- */
+function requiredLibsMissing(){
+  const missing = [];
+  if(typeof mammoth === 'undefined') missing.push('Mammoth');
+  if(typeof html2canvas === 'undefined') missing.push('html2canvas');
+  if(typeof PDFLib === 'undefined') missing.push('pdf-lib');
+  return missing;
+}
+const _missingLibs = requiredLibsMissing();
+if(_missingLibs.length){
+  document.getElementById('fatalErrorText').textContent =
+    `These couldn't load: ${_missingLibs.join(', ')}. This is usually a network or ad-blocker issue. Check your connection and reload.`;
+  document.getElementById('fatalError').classList.add('show');
+  throw new Error('Required libraries failed to load: ' + _missingLibs.join(', '));
+}
+const { PDFDocument } = PDFLib;
+
+/* ---------------- Loading / toast ---------------- */
+let loadingDepth = 0;
+function showLoading(msg){
+  loadingDepth++;
+  document.getElementById('loadingText').textContent = msg || 'Working…';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading(){
+  loadingDepth = Math.max(0, loadingDepth - 1);
+  if(loadingDepth === 0) document.getElementById('loadingOverlay').classList.remove('show');
+}
+let toastTimer = null;
+function showToast(msg, type){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), type==='error' ? 4200 : 2600);
+}
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function loadImage(src){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+function sanitizeFilePart(s){ return (s||'').replace(/[\\/:*?"<>|]/g,'').trim(); }
+function dataUrlToBytes(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function downloadBytes(bytes, filename, mime){
+  const blob = new Blob([bytes], { type: mime || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- IndexedDB persistence — same database as the PDF tool,     ---------------- */
+/* ---------------- so the saved signature is shared between both pages.       ---------------- */
+const DB_NAME = 'sdo_storage';
+const DB_VERSION = 1;
+const STORE = 'kv';
+let _dbPromise = null;
+function openDB(){
+  if(_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject)=>{
+    if(!('indexedDB' in window)){ reject(new Error('IndexedDB not available')); return; }
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(STORE); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+  return _dbPromise;
+}
+async function idbGet(key){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+async function getSavedSignature(){ try{ return await idbGet('savedSignature'); } catch(e){ return null; } }
+async function saveSignatureToStore(dataUrl){ try{ await idbSet('savedSignature', dataUrl); } catch(e){ console.error('Could not save signature', e); } }
+
+function setSaveIndicator(state){
+  const el = document.getElementById('saveIndicator');
+  const txt = document.getElementById('saveIndicatorText');
+  if(state === 'saving'){ el.classList.add('saving'); txt.textContent = 'Saving…'; }
+  else if(state === 'error'){ el.classList.remove('saving'); txt.textContent = 'Not saved'; }
+  else { el.classList.remove('saving'); txt.textContent = 'Saved'; }
+}
+
+const pageEditor = document.getElementById('pageEditor');
+const docTitleInput = document.getElementById('docTitle');
+
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  setSaveIndicator('saving');
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await idbSet('wordDocState', { title: docTitleInput.value, html: pageEditor.innerHTML });
+      setSaveIndicator('saved');
+    } catch(err){ console.error('Autosave failed', err); setSaveIndicator('error'); }
+  }, 700);
+}
+function flushSaveNow(){
+  clearTimeout(saveTimer);
+  idbSet('wordDocState', { title: docTitleInput.value, html: pageEditor.innerHTML }).catch(()=>{});
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flushSaveNow(); });
+window.addEventListener('pagehide', flushSaveNow);
+
+async function restoreDocState(){
+  let saved;
+  try{ saved = await idbGet('wordDocState'); } catch(e){ return false; }
+  if(!saved) return false;
+  docTitleInput.value = saved.title || '';
+  pageEditor.innerHTML = saved.html || '';
+  return true;
+}
+
+/* ---------------- Selection tracking (so modals don't lose the cursor position) ---------------- */
+let savedRange = null;
+function saveSelection(){
+  const sel = window.getSelection();
+  if(sel.rangeCount > 0 && pageEditor.contains(sel.anchorNode)){
+    savedRange = sel.getRangeAt(0).cloneRange();
+  }
+}
+function restoreSelection(){
+  pageEditor.focus();
+  if(savedRange){
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+}
+pageEditor.addEventListener('mouseup', saveSelection);
+pageEditor.addEventListener('keyup', saveSelection);
+pageEditor.addEventListener('input', scheduleSave);
+document.getElementById('docTitle').addEventListener('input', scheduleSave);
+
+function insertHtmlAtCursor(html){
+  restoreSelection();
+  document.execCommand('insertHTML', false, html);
+  scheduleSave();
+}
+
+/* ---------------- Toolbar wiring ---------------- */
+document.querySelectorAll('.tbtn[data-cmd]').forEach(btn=>{
+  btn.addEventListener('mousedown', (e)=> e.preventDefault()); // keep editor focus/selection
+  btn.addEventListener('click', ()=>{
+    pageEditor.focus();
+    document.execCommand(btn.dataset.cmd, false, null);
+    scheduleSave();
+  });
+});
+document.getElementById('blockFormatSelect').addEventListener('change', (e)=>{
+  pageEditor.focus();
+  document.execCommand('formatBlock', false, e.target.value);
+  scheduleSave();
+});
+document.getElementById('fontSizeSelect').addEventListener('change', (e)=>{
+  pageEditor.focus();
+  document.execCommand('fontSize', false, e.target.value);
+  scheduleSave();
+});
+
+/* ---------------- File: upload .docx / new document ---------------- */
+document.getElementById('uploadDocxBtn').addEventListener('click', ()=> document.getElementById('docxInput').click());
+document.getElementById('docxInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  showLoading(`Converting "${file.name}"…`);
+  try{
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer });
+    pageEditor.innerHTML = result.value || '<p><em>(empty document)</em></p>';
+    const titleGuess = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+    if(!docTitleInput.value) docTitleInput.value = titleGuess;
+    scheduleSave();
+    showToast('Document loaded — you can edit it below', 'success');
+  } catch(err){
+    console.error(err);
+    showToast("Couldn't read that .docx file — it may be corrupted or an old .doc format", 'error');
+  } finally {
+    hideLoading();
+  }
+});
+document.getElementById('newDocBtn').addEventListener('click', ()=>{
+  if(pageEditor.innerHTML.trim() && !confirm('Clear the current document and start a new one?')) return;
+  pageEditor.innerHTML = '';
+  docTitleInput.value = '';
+  scheduleSave();
+});
+document.getElementById('clearDocBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear this document on this device? This cannot be undone. Your saved signature will be kept.')) return;
+  pageEditor.innerHTML = '';
+  docTitleInput.value = '';
+  clearTimeout(saveTimer);
+  try{ await idbDelete('wordDocState'); } catch(e){ /* ignore */ }
+  setSaveIndicator('saved');
+  showToast('Cleared — starting fresh', 'success');
+});
+
+/* ---------------- Insert image ---------------- */
+document.getElementById('insertImageBtn').addEventListener('mousedown', saveSelection);
+document.getElementById('insertImageBtn').addEventListener('click', ()=> document.getElementById('imageInput').click());
+document.getElementById('imageInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const dataUrl = await new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  insertHtmlAtCursor(`<img src="${dataUrl}" style="max-width:100%;" />`);
+});
+
+/* ---------------- Signature: insert saved / draw / upload+crop+bg-removal ---------------- */
+async function insertSignatureAtCursor(dataUrl){
+  const img = await loadImage(dataUrl);
+  const initW = 180;
+  const initH = Math.round(initW * (img.naturalHeight / img.naturalWidth));
+  const html = `<span class="sig-inline" contenteditable="false" style="display:inline-block; width:${initW}px; height:${initH}px; resize:both; overflow:hidden;"><img src="${dataUrl}" style="width:100%; height:100%; display:block; pointer-events:none;" draggable="false" alt="Signature" /></span>&nbsp;`;
+  insertHtmlAtCursor(html);
+}
+
+document.getElementById('insertSavedSigBtn').addEventListener('mousedown', saveSelection);
+document.getElementById('insertSavedSigBtn').addEventListener('click', async ()=>{
+  const sig = await getSavedSignature();
+  if(!sig){ showToast('No saved signature yet — draw or upload one first', 'error'); return; }
+  await insertSignatureAtCursor(sig);
+});
+
+/* ---- Draw signature ---- */
+const sigPadModal = document.getElementById('sigPadModal');
+const sigPadCanvas = document.getElementById('sigPadCanvas');
+const sigPadCtx = sigPadCanvas.getContext('2d');
+let sigDrawing = false, sigLast = null;
+
+document.getElementById('drawSigBtn').addEventListener('mousedown', saveSelection);
+document.getElementById('drawSigBtn').addEventListener('click', ()=>{
+  sigPadCtx.clearRect(0,0,sigPadCanvas.width, sigPadCanvas.height);
+  sigPadModal.classList.add('open');
+});
+function closeSigPad(){ sigPadModal.classList.remove('open'); }
+function sigPadPoint(e){
+  const rect = sigPadCanvas.getBoundingClientRect();
+  return { x:(e.clientX-rect.left)*(sigPadCanvas.width/rect.width), y:(e.clientY-rect.top)*(sigPadCanvas.height/rect.height) };
+}
+sigPadCanvas.addEventListener('pointerdown', (e)=>{
+  sigDrawing = true; sigLast = sigPadPoint(e);
+  sigPadCanvas.setPointerCapture(e.pointerId);
+});
+sigPadCanvas.addEventListener('pointermove', (e)=>{
+  if(!sigDrawing) return;
+  const pt = sigPadPoint(e);
+  sigPadCtx.lineJoin='round'; sigPadCtx.lineCap='round'; sigPadCtx.lineWidth=2.6; sigPadCtx.strokeStyle='#0B2545';
+  sigPadCtx.beginPath(); sigPadCtx.moveTo(sigLast.x, sigLast.y); sigPadCtx.lineTo(pt.x, pt.y); sigPadCtx.stroke();
+  sigLast = pt;
+});
+['pointerup','pointerleave','pointercancel'].forEach(evt=> sigPadCanvas.addEventListener(evt, ()=>{ sigDrawing=false; }));
+document.getElementById('sigPadClear').addEventListener('click', ()=> sigPadCtx.clearRect(0,0,sigPadCanvas.width, sigPadCanvas.height));
+document.getElementById('sigPadCancel').addEventListener('click', closeSigPad);
+document.getElementById('sigPadSave').addEventListener('click', async ()=>{
+  const dataUrl = makeSignatureTransparent(sigPadCanvas);
+  await saveSignatureToStore(dataUrl);
+  closeSigPad();
+  await insertSignatureAtCursor(dataUrl);
+  showToast('Signature saved for reuse', 'success');
+});
+function makeSignatureTransparent(canvas){
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0,0,canvas.width, canvas.height);
+  const d = imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) d[i+3] = 0;
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/* ---- Upload signature, with crop + background removal ---- */
+const sigUploadModal = document.getElementById('sigUploadModal');
+let sigUploadOriginalImg = null;
+
+document.getElementById('uploadSigBtn').addEventListener('mousedown', saveSelection);
+document.getElementById('uploadSigBtn').addEventListener('click', ()=> document.getElementById('sigUploadInput').click());
+document.getElementById('sigUploadChooseAnother').addEventListener('click', ()=> document.getElementById('sigUploadInput').click());
+document.getElementById('sigUploadInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const dataUrl = await new Promise((res, rej)=>{
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+    sigUploadOriginalImg = await loadImage(dataUrl);
+    openSigUploadModal();
+  } catch(err){
+    console.error(err);
+    showToast("Couldn't read that image", 'error');
+  }
+});
+function openSigUploadModal(){
+  renderSigUploadPreview();
+  resetSigCropBox();
+  sigUploadModal.classList.add('open');
+}
+function closeSigUploadModal(){ sigUploadModal.classList.remove('open'); }
+function removeNearWhiteBackground(canvas, threshold){
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imgData.data;
+  for(let i=0; i<d.length; i+=4){
+    if(d[i] >= threshold && d[i+1] >= threshold && d[i+2] >= threshold) d[i+3] = 0;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+function renderSigUploadPreview(){
+  if(!sigUploadOriginalImg) return;
+  const canvas = document.getElementById('sigUploadCanvas');
+  const maxW = 480, maxH = 220;
+  const ratio = Math.min(maxW / sigUploadOriginalImg.naturalWidth, maxH / sigUploadOriginalImg.naturalHeight, 1);
+  canvas.width = Math.max(1, Math.round(sigUploadOriginalImg.naturalWidth * ratio));
+  canvas.height = Math.max(1, Math.round(sigUploadOriginalImg.naturalHeight * ratio));
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(sigUploadOriginalImg, 0, 0, canvas.width, canvas.height);
+  const threshold = parseInt(document.getElementById('sigUploadThreshold').value, 10);
+  removeNearWhiteBackground(canvas, threshold);
+}
+document.getElementById('sigUploadThreshold').addEventListener('input', renderSigUploadPreview);
+document.getElementById('sigUploadCancel').addEventListener('click', closeSigUploadModal);
+document.getElementById('sigUploadSave').addEventListener('click', async ()=>{
+  if(!sigUploadOriginalImg) return;
+  const full = document.createElement('canvas');
+  full.width = sigUploadOriginalImg.naturalWidth;
+  full.height = sigUploadOriginalImg.naturalHeight;
+  full.getContext('2d').drawImage(sigUploadOriginalImg, 0, 0);
+  const threshold = parseInt(document.getElementById('sigUploadThreshold').value, 10);
+  removeNearWhiteBackground(full, threshold);
+
+  let finalCanvas = full;
+  if(sigCropFrac && (sigCropFrac.left > 0.001 || sigCropFrac.top > 0.001 || sigCropFrac.width < 0.999 || sigCropFrac.height < 0.999)){
+    const cx = sigCropFrac.left * full.width;
+    const cy = sigCropFrac.top * full.height;
+    const cw = sigCropFrac.width * full.width;
+    const ch = sigCropFrac.height * full.height;
+    const cropped = document.createElement('canvas');
+    cropped.width = Math.max(1, Math.round(cw));
+    cropped.height = Math.max(1, Math.round(ch));
+    cropped.getContext('2d').drawImage(full, cx, cy, cw, ch, 0, 0, cropped.width, cropped.height);
+    finalCanvas = cropped;
+  }
+
+  const dataUrl = finalCanvas.toDataURL('image/png');
+  await saveSignatureToStore(dataUrl);
+  closeSigUploadModal();
+  await insertSignatureAtCursor(dataUrl);
+  showToast('Signature saved for reuse', 'success');
+});
+
+/* ---- Crop box for the signature upload preview (6 handles: 4 edges + 2 corners) ---- */
+const sigCropBoxEl = document.getElementById('sigCropBox');
+const sigUploadStageEl = document.getElementById('sigUploadStage');
+let sigCropFrac = null;
+let activeSigCropDrag = null;
+const SIG_CROP_MIN_FRAC = 0.05;
+
+function sigStageBounds(){ return { w: sigUploadStageEl.offsetWidth, h: sigUploadStageEl.offsetHeight }; }
+function resetSigCropBox(){
+  sigCropFrac = { left: 0, top: 0, width: 1, height: 1 };
+  renderSigCropBox();
+}
+function renderSigCropBox(){
+  if(!sigCropFrac) return;
+  const sb = sigStageBounds();
+  sigCropBoxEl.style.left = (sigCropFrac.left * sb.w) + 'px';
+  sigCropBoxEl.style.top = (sigCropFrac.top * sb.h) + 'px';
+  sigCropBoxEl.style.width = (sigCropFrac.width * sb.w) + 'px';
+  sigCropBoxEl.style.height = (sigCropFrac.height * sb.h) + 'px';
+}
+sigCropBoxEl.addEventListener('pointerdown', (e)=>{
+  const type = e.target.dataset.handle || 'move';
+  activeSigCropDrag = { type, startX: e.clientX, startY: e.clientY, sb: sigStageBounds(), startBox: {...sigCropFrac} };
+  e.target.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+  e.preventDefault();
+});
+window.addEventListener('pointermove', (e)=>{
+  if(!activeSigCropDrag || !sigCropFrac) return;
+  const { sb, startBox: s, type } = activeSigCropDrag;
+  const dxF = (e.clientX - activeSigCropDrag.startX) / sb.w;
+  const dyF = (e.clientY - activeSigCropDrag.startY) / sb.h;
+  let { left, top, width, height } = s;
+  if(type === 'move'){
+    left = clamp(s.left + dxF, 0, 1 - s.width);
+    top = clamp(s.top + dyF, 0, 1 - s.height);
+  } else {
+    let right = s.left + s.width;
+    let bottom = s.top + s.height;
+    if(type === 'top' || type === 'tl') top = clamp(s.top + dyF, 0, bottom - SIG_CROP_MIN_FRAC);
+    if(type === 'left' || type === 'tl') left = clamp(s.left + dxF, 0, right - SIG_CROP_MIN_FRAC);
+    if(type === 'bottom' || type === 'br') bottom = clamp(s.top + s.height + dyF, top + SIG_CROP_MIN_FRAC, 1);
+    if(type === 'right' || type === 'br') right = clamp(s.left + s.width + dxF, left + SIG_CROP_MIN_FRAC, 1);
+    width = right - left;
+    height = bottom - top;
+  }
+  sigCropFrac = { left, top, width, height };
+  renderSigCropBox();
+});
+window.addEventListener('pointerup', ()=>{ activeSigCropDrag = null; });
+document.getElementById('sigUploadResetCrop').addEventListener('click', resetSigCropBox);
+
+/* ---------------- Export: Word (.doc) and PDF ---------------- */
+function docTitleValue(){ return docTitleInput.value.trim() || 'Untitled Document'; }
+
+document.getElementById('downloadDocBtn').addEventListener('click', ()=>{
+  if(!pageEditor.innerHTML.trim()){ showToast('Nothing to download yet', 'error'); return; }
+  const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + sanitizeFilePart(docTitleValue()) + "</title></head><body>";
+  const postHtml = "</body></html>";
+  const html = preHtml + pageEditor.innerHTML + postHtml;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFilePart(docTitleValue())}.doc`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Downloaded — opens directly in Microsoft Word', 'success');
+});
+
+document.getElementById('downloadPdfBtn').addEventListener('click', async ()=>{
+  if(!pageEditor.innerHTML.trim()){ showToast('Nothing to download yet', 'error'); return; }
+  showLoading('Rendering pages…');
+  try{
+    const canvas = await html2canvas(pageEditor, { scale: 2, backgroundColor: '#ffffff' });
+    const outDoc = await PDFDocument.create();
+    const PAGE_W_PT = 612, PAGE_H_PT = 792; // US Letter, in points
+    const pxPerPt = canvas.width / PAGE_W_PT;
+    const pageHeightPx = PAGE_H_PT * pxPerPt;
+    const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
+    for(let i=0; i<totalPages; i++){
+      const sliceH = Math.min(pageHeightPx, canvas.height - i * pageHeightPx);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceH;
+      const ctx = pageCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, sliceH);
+      ctx.drawImage(canvas, 0, i * pageHeightPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const bytes = dataUrlToBytes(pageCanvas.toDataURL('image/png'));
+      const img = await outDoc.embedPng(bytes);
+      const pageHpt = sliceH / pxPerPt;
+      const page = outDoc.addPage([PAGE_W_PT, pageHpt]);
+      page.drawImage(img, { x: 0, y: 0, width: PAGE_W_PT, height: pageHpt });
+    }
+    const bytes = await outDoc.save();
+    downloadBytes(bytes, `${sanitizeFilePart(docTitleValue())}.pdf`, 'application/pdf');
+    showToast('PDF downloaded', 'success');
+  } catch(err){
+    console.error(err);
+    showToast("Couldn't build the PDF — see console for details", 'error');
+  } finally {
+    hideLoading();
+  }
+});
+
+/* ---------------- Startup ---------------- */
+(async function init(){
+  const restored = await restoreDocState().catch(err=>{ console.error(err); return false; });
+  if(restored) showToast('Restored your previous session', 'success');
+})();
+</script>
+</body>
+</html>
