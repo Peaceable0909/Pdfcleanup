@@ -589,6 +589,17 @@
     .editor-tools button.plain, .editor-tools .tool-btn{ padding:6px 9px; font-size:11.5px; }
     .editor-tools input[type=range]{ width:64px; }
   }
+  .toolbar-actions .add-pages-drop-target{
+    position:relative; border-style:dashed; transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .toolbar-actions .add-pages-drop-target.drag-over{
+    background:rgba(47,99,232,0.14); border-color:var(--stamp); box-shadow:0 0 0 3px rgba(47,99,232,0.16);
+  }
+  .toolbar-actions .add-pages-drop-target.drag-over::after{
+    content:'Drop files to add'; position:absolute; left:50%; top:calc(100% + 7px); transform:translateX(-50%);
+    z-index:4; white-space:nowrap; padding:4px 8px; border-radius:5px; background:var(--ink);
+    color:#fff; font:600 10px/1.2 'Inter',sans-serif; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
   .editor-canvas-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; overflow:auto; }
   #editorStage{ position:relative; }
   #editorBaseCanvas, #editorDrawCanvas{ position:absolute; top:0; left:0; border-radius:4px; }
@@ -739,9 +750,9 @@
           <div class="filename" id="toolbarFilename"></div>
         </div>
         <div class="toolbar-actions">
-          <button class="btn-secondary btn-icon" id="addMoreBtn" type="button">
+          <button class="btn-secondary btn-icon add-pages-drop-target" id="addMoreBtn" type="button" title="Click to choose files, or drag files here">
             <svg viewBox="0 0 18 18" width="14" height="14"><path d="M9 4v10M4 9h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            Add pages to this document
+            Add pages <span class="add-pages-hint">/ drop files</span>
           </button>
           <button class="btn-secondary btn-icon btn-danger-outline" id="deleteDocBtn" type="button">
             <svg viewBox="0 0 18 18" width="14" height="14"><path d="M4 5.5h10M7.5 5.5V4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M5.5 5.5 6 14a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2760,6 +2771,34 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   e.target.value = '';
 });
 document.getElementById('newDocBtn').addEventListener('click', createNewDocument);
+const addMoreBtn = document.getElementById('addMoreBtn');
+function addDroppedPages(fileList){
+  if(!selectedDocId){
+    showToast('Select a document before dropping pages', 'error');
+    return;
+  }
+  if(fileList && fileList.length) handleFiles(fileList, selectedDocId);
+}
+['dragenter','dragover'].forEach(evt=>{
+  addMoreBtn.addEventListener(evt, (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')){
+      addMoreBtn.classList.add('drag-over');
+      e.dataTransfer.dropEffect='copy';
+    }
+  });
+});
+addMoreBtn.addEventListener('dragleave', (e)=>{
+  e.preventDefault();
+  if(!addMoreBtn.contains(e.relatedTarget)) addMoreBtn.classList.remove('drag-over');
+});
+addMoreBtn.addEventListener('drop', (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+  addMoreBtn.classList.remove('drag-over');
+  addDroppedPages(e.dataTransfer.files);
+});
 document.getElementById('addMoreBtn').addEventListener('click', ()=>{
   document.getElementById('addPagesInput').dataset.targetDoc = selectedDocId;
   document.getElementById('addPagesInput').click();
