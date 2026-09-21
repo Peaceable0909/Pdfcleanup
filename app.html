@@ -599,22 +599,30 @@
   .sig-threshold-row label{ font-size:12px; color: var(--ink-soft); font-family:'Inter',sans-serif; }
   .sig-upload-stage{ position:relative; display:inline-block; overflow:hidden; border-radius:8px; max-width:100%; }
 
-  /* Persistent, adjustable crop box: 4 edge handles + 2 corner handles + drag-to-move */
+  /* Four independent corners for perspective crop */
+  .perspective-crop-box{ position:absolute; inset:0; display:none; pointer-events:none; touch-action:none; }
+  .perspective-crop-box .crop-shade{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .perspective-crop-box .crop-handle{
+    position:absolute; width:18px; height:18px; border-radius:50%;
+    background:#fff; border:3px solid var(--stamp); transform:translate(-50%,-50%);
+    pointer-events:auto; touch-action:none; cursor:move;
+  }
+  .perspective-crop-box .crop-handle:hover{ background:var(--stamp); border-color:#fff; }
+  .perspective-crop-box .corner-tr, .perspective-crop-box .corner-bl{ cursor:nesw-resize; }
+  /* Legacy rectangular crop box used by the signature upload preview */
   .crop-box{
     position:absolute; top:0; left:0; display:none;
     border:1.5px dashed #fff; box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
     cursor: move; touch-action:none;
   }
-  .crop-box .crop-handle{
-    position:absolute; background:#fff; border:2px solid var(--stamp); touch-action:none;
-  }
+  .crop-box .crop-handle{ position:absolute; background:#fff; border:2px solid var(--stamp); touch-action:none; }
   .crop-box .crop-handle.edge-h{ width:28px; height:9px; border-radius:5px; left:50%; transform:translate(-50%,-50%); }
   .crop-box .crop-handle.edge-v{ width:9px; height:28px; border-radius:5px; top:50%; transform:translate(-50%,-50%); }
-  .crop-box .handle-top{ top:0; cursor: ns-resize; }
-  .crop-box .handle-bottom{ top:100%; cursor: ns-resize; }
-  .crop-box .handle-left{ left:0; cursor: ew-resize; }
-  .crop-box .handle-right{ left:100%; cursor: ew-resize; }
-  .crop-box .crop-handle.corner{ width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); cursor: nwse-resize; }
+  .crop-box .handle-top{ top:0; cursor:ns-resize; }
+  .crop-box .handle-bottom{ top:100%; cursor:ns-resize; }
+  .crop-box .handle-left{ left:0; cursor:ew-resize; }
+  .crop-box .handle-right{ left:100%; cursor:ew-resize; }
+  .crop-box .crop-handle.corner{ width:16px; height:16px; border-radius:50%; transform:translate(-50%,-50%); cursor:nwse-resize; }
   .crop-box .corner-tl{ top:0; left:0; }
   .crop-box .corner-br{ top:100%; left:100%; }
 
@@ -763,7 +771,7 @@
       <button class="plain" id="undoBtn" type="button">Undo</button>
       <button class="plain" id="clearBtn" type="button">Clear marks</button>
       <span class="sep"></span>
-      <button class="tool-btn" data-tool="crop" type="button">Crop</button>
+      <button class="tool-btn" data-tool="crop" type="button">Perspective crop</button>
       <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply crop</button>
       <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel crop</button>
       <span class="sep"></span>
@@ -786,13 +794,15 @@
     <div id="editorStage">
       <canvas id="editorBaseCanvas"></canvas>
       <canvas id="editorDrawCanvas"></canvas>
-      <div class="crop-box" id="cropBox">
-        <div class="crop-handle edge-h handle-top" data-handle="top"></div>
-        <div class="crop-handle edge-h handle-bottom" data-handle="bottom"></div>
-        <div class="crop-handle edge-v handle-left" data-handle="left"></div>
-        <div class="crop-handle edge-v handle-right" data-handle="right"></div>
-        <div class="crop-handle corner corner-tl" data-handle="tl"></div>
-        <div class="crop-handle corner corner-br" data-handle="br"></div>
+      <div class="perspective-crop-box" id="cropBox" aria-label="Perspective crop area">
+        <svg class="crop-shade" id="cropShade" aria-hidden="true" preserveAspectRatio="none">
+          <path id="cropShadePath" fill="rgba(0,0,0,0.42)" fill-rule="evenodd"></path>
+          <polygon id="cropOutline" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="7 5"></polygon>
+        </svg>
+        <div class="crop-handle corner-tl" data-handle="tl" title="Top-left corner"></div>
+        <div class="crop-handle corner-tr" data-handle="tr" title="Top-right corner"></div>
+        <div class="crop-handle corner-br" data-handle="br" title="Bottom-right corner"></div>
+        <div class="crop-handle corner-bl" data-handle="bl" title="Bottom-left corner"></div>
       </div>
     </div>
   </div>
@@ -1977,16 +1987,21 @@ function getCanvasPoint(e){
 }
 
 const cropBoxEl = document.getElementById('cropBox');
-let cropBoxFrac = null; // {left, top, width, height} as fractions (0-1) of the stage size
-let activeCropDrag = null; // { type, startX, startY, sb:{w,h}, startBox }
-const CROP_MIN_FRAC = 0.04;
+const cropShade = document.getElementById('cropShade');
+const cropShadePath = document.getElementById('cropShadePath');
+const cropOutline = document.getElementById('cropOutline');
+let cropQuad = null; // { tl, tr, br, bl }, each point has normalized x/y coordinates
+let activeCropDrag = null;
 
 function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 function stageBounds(){ return { w: editorStage.offsetWidth, h: editorStage.offsetHeight }; }
 
 function showCropBox(){
-  if(!cropBoxFrac){
-    cropBoxFrac = { left: 0.08, top: 0.08, width: 0.84, height: 0.84 };
+  if(!cropQuad){
+    cropQuad = {
+      tl:{x:0.08,y:0.08}, tr:{x:0.92,y:0.08},
+      br:{x:0.92,y:0.92}, bl:{x:0.08,y:0.92}
+    };
   }
   cropBoxEl.style.display = 'block';
   renderCropBox();
@@ -1995,83 +2010,114 @@ function showCropBox(){
 }
 function hideCropBox(){
   cropBoxEl.style.display = 'none';
-  cropBoxFrac = null;
+  cropQuad = null;
   activeCropDrag = null;
   document.getElementById('applyCropBtn').style.display = 'none';
   document.getElementById('cancelCropBtn').style.display = 'none';
 }
 function renderCropBox(){
-  if(!cropBoxFrac) return;
+  if(!cropQuad) return;
   const sb = stageBounds();
-  cropBoxEl.style.left = (cropBoxFrac.left * sb.w) + 'px';
-  cropBoxEl.style.top = (cropBoxFrac.top * sb.h) + 'px';
-  cropBoxEl.style.width = (cropBoxFrac.width * sb.w) + 'px';
-  cropBoxEl.style.height = (cropBoxFrac.height * sb.h) + 'px';
+  const points = ['tl','tr','br','bl'].map(key=>({
+    x:cropQuad[key].x * sb.w, y:cropQuad[key].y * sb.h
+  }));
+  cropShade.setAttribute('viewBox', `0 0 ${sb.w} ${sb.h}`);
+  const polygon = points.map(p=>`${p.x},${p.y}`).join(' ');
+  cropOutline.setAttribute('points', polygon);
+  cropShadePath.setAttribute('d', `M 0 0 H ${sb.w} V ${sb.h} H 0 Z M ${polygon} Z`);
+  ['tl','tr','br','bl'].forEach(key=>{
+    const handle = cropBoxEl.querySelector(`[data-handle="${key}"]`);
+    handle.style.left = (cropQuad[key].x * 100) + '%';
+    handle.style.top = (cropQuad[key].y * 100) + '%';
+  });
 }
-
 cropBoxEl.addEventListener('pointerdown', (e)=>{
-  const type = e.target.dataset.handle || 'move';
-  activeCropDrag = { type, startX: e.clientX, startY: e.clientY, sb: stageBounds(), startBox: {...cropBoxFrac} };
+  const type = e.target.dataset.handle;
+  if(!type) return;
+  activeCropDrag = { type, startX: e.clientX, startY: e.clientY, sb: stageBounds(), startQuad: JSON.parse(JSON.stringify(cropQuad)) };
   e.target.setPointerCapture(e.pointerId);
   e.stopPropagation();
   e.preventDefault();
 });
 window.addEventListener('pointermove', (e)=>{
-  if(!activeCropDrag || !cropBoxFrac) return;
-  const { sb, startBox: s, type } = activeCropDrag;
-  const dxF = (e.clientX - activeCropDrag.startX) / sb.w;
-  const dyF = (e.clientY - activeCropDrag.startY) / sb.h;
-  let { left, top, width, height } = s;
-
-  if(type === 'move'){
-    left = clamp(s.left + dxF, 0, 1 - s.width);
-    top = clamp(s.top + dyF, 0, 1 - s.height);
-  } else {
-    let right = s.left + s.width;
-    let bottom = s.top + s.height;
-    if(type === 'top' || type === 'tl') top = clamp(s.top + dyF, 0, bottom - CROP_MIN_FRAC);
-    if(type === 'left' || type === 'tl') left = clamp(s.left + dxF, 0, right - CROP_MIN_FRAC);
-    if(type === 'bottom' || type === 'br') bottom = clamp(s.top + s.height + dyF, top + CROP_MIN_FRAC, 1);
-    if(type === 'right' || type === 'br') right = clamp(s.left + s.width + dxF, left + CROP_MIN_FRAC, 1);
-    width = right - left;
-    height = bottom - top;
-  }
-  cropBoxFrac = { left, top, width, height };
+  if(!activeCropDrag || !cropQuad) return;
+  const { sb, startQuad, type } = activeCropDrag;
+  cropQuad[type] = {
+    x: clamp(startQuad[type].x + (e.clientX - activeCropDrag.startX) / sb.w, 0, 1),
+    y: clamp(startQuad[type].y + (e.clientY - activeCropDrag.startY) / sb.h, 0, 1)
+  };
   renderCropBox();
 });
 window.addEventListener('pointerup', ()=>{ activeCropDrag = null; });
 
+function solveHomography(source, destination){
+  // Solve the 8 unknowns in the projective transform with h33 fixed at 1.
+  const a = [], b = [];
+  source.forEach((p, i)=>{
+    const q = destination[i], x=p.x, y=p.y, u=q.x, v=q.y;
+    a.push([x,y,1,0,0,0,-u*x,-u*y]); b.push(u);
+    a.push([0,0,0,x,y,1,-v*x,-v*y]); b.push(v);
+  });
+  for(let col=0; col<8; col++){
+    let pivot=col;
+    for(let row=col+1; row<8; row++) if(Math.abs(a[row][col]) > Math.abs(a[pivot][col])) pivot=row;
+    if(Math.abs(a[pivot][col]) < 1e-10) return null;
+    [a[col],a[pivot]]=[a[pivot],a[col]]; [b[col],b[pivot]]=[b[pivot],b[col]];
+    const div=a[col][col];
+    for(let j=col;j<8;j++) a[col][j]/=div; b[col]/=div;
+    for(let row=0;row<8;row++) if(row!==col){
+      const factor=a[row][col];
+      for(let j=col;j<8;j++) a[row][j]-=factor*a[col][j]; b[row]-=factor*b[col];
+    }
+  }
+  return [...b,1];
+}
+function warpCanvasPerspective(sourceCanvas, quad){
+  const srcPoints = ['tl','tr','br','bl'].map(k=>({ x:quad[k].x * sourceCanvas.width, y:quad[k].y * sourceCanvas.height }));
+  const width = Math.max(1, Math.round(Math.max(
+    Math.hypot(srcPoints[1].x-srcPoints[0].x, srcPoints[1].y-srcPoints[0].y),
+    Math.hypot(srcPoints[2].x-srcPoints[3].x, srcPoints[2].y-srcPoints[3].y)
+  )));
+  const height = Math.max(1, Math.round(Math.max(
+    Math.hypot(srcPoints[3].x-srcPoints[0].x, srcPoints[3].y-srcPoints[0].y),
+    Math.hypot(srcPoints[2].x-srcPoints[1].x, srcPoints[2].y-srcPoints[1].y)
+  )));
+  // The inverse map samples each destination pixel from the selected source quadrilateral.
+  const inverse = solveHomography(
+    [{x:0,y:0},{x:width,y:0},{x:width,y:height},{x:0,y:height}], srcPoints
+  );
+  if(!inverse) return null;
+  const src = sourceCanvas.getContext('2d').getImageData(0,0,sourceCanvas.width,sourceCanvas.height);
+  const out = document.createElement('canvas'); out.width=width; out.height=height;
+  const outCtx = out.getContext('2d'); const dst=outCtx.createImageData(width,height);
+  for(let y=0;y<height;y++) for(let x=0;x<width;x++){
+    const den=inverse[6]*x+inverse[7]*y+1;
+    const sx=(inverse[0]*x+inverse[1]*y+inverse[2])/den;
+    const sy=(inverse[3]*x+inverse[4]*y+inverse[5])/den;
+    const ix=Math.round(sx), iy=Math.round(sy);
+    if(ix<0||iy<0||ix>=src.width||iy>=src.height) continue;
+    const si=(iy*src.width+ix)*4, di=(y*width+x)*4;
+    dst.data[di]=src.data[si]; dst.data[di+1]=src.data[si+1]; dst.data[di+2]=src.data[si+2]; dst.data[di+3]=src.data[si+3];
+  }
+  outCtx.putImageData(dst,0,0);
+  return out;
+}
 function applyCrop(){
-  if(!cropBoxFrac) return;
-  const x = cropBoxFrac.left * drawCanvas.width;
-  const y = cropBoxFrac.top * drawCanvas.height;
-  const w = cropBoxFrac.width * drawCanvas.width;
-  const h = cropBoxFrac.height * drawCanvas.height;
-  if(w < 4 || h < 4) return;
-
+  if(!cropQuad) return;
   bakeSignatureOverlays(); // don't lose in-progress signature placement to the crop
-
-  const newBase = document.createElement('canvas');
-  newBase.width = Math.round(w); newBase.height = Math.round(h);
-  newBase.getContext('2d').drawImage(baseCanvas, x, y, w, h, 0, 0, newBase.width, newBase.height);
-
-  const newDraw = document.createElement('canvas');
-  newDraw.width = Math.round(w); newDraw.height = Math.round(h);
-  newDraw.getContext('2d').drawImage(drawCanvas, x, y, w, h, 0, 0, newDraw.width, newDraw.height);
-
+  const newBase = warpCanvasPerspective(baseCanvas, cropQuad);
+  const newDraw = warpCanvasPerspective(drawCanvas, cropQuad);
+  if(!newBase || !newDraw || newBase.width < 4 || newBase.height < 4) return;
   baseCanvas.width = newBase.width; baseCanvas.height = newBase.height;
   editorBaseCtx = baseCanvas.getContext('2d');
   editorBaseCtx.drawImage(newBase, 0, 0);
-
   drawCanvas.width = newDraw.width; drawCanvas.height = newDraw.height;
   editorCtx = drawCanvas.getContext('2d');
   editorCtx.drawImage(newDraw, 0, 0);
-
   editorHistory = [];
   fitEditorCanvasDisplay();
-  showToast('Cropped', 'success');
+  showToast('Perspective crop applied', 'success');
 }
-
 drawCanvas.addEventListener('pointerdown', (e)=>{
   if(e.target !== drawCanvas) return;
   if(currentTool === 'crop') return; // the crop box itself handles all crop interaction
