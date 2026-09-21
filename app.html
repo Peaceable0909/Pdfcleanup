@@ -772,6 +772,7 @@
       <button class="plain" id="clearBtn" type="button">Clear marks</button>
       <span class="sep"></span>
       <button class="tool-btn" data-tool="crop" type="button">Perspective crop</button>
+      <button class="plain" id="autoDetectCropBtn" type="button" title="Find the document edges automatically">Auto-detect corners</button>
       <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply crop</button>
       <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel crop</button>
       <span class="sep"></span>
@@ -2102,6 +2103,98 @@ function warpCanvasPerspective(sourceCanvas, quad){
   outCtx.putImageData(dst,0,0);
   return out;
 }
+function convexHull(points){
+  const sorted = points.slice().sort((a,b)=>a.x-b.x || a.y-b.y);
+  if(sorted.length <= 1) return sorted;
+  const cross = (o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lower=[];
+  for(const p of sorted){
+    while(lower.length>=2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper=[];
+  for(let i=sorted.length-1;i>=0;i--){
+    const p=sorted[i];
+    while(upper.length>=2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+function detectDocumentCorners(sourceCanvas){
+  const maxSide = 560;
+  const ratio = Math.min(1, maxSide / Math.max(sourceCanvas.width, sourceCanvas.height));
+  const width = Math.max(32, Math.round(sourceCanvas.width * ratio));
+  const height = Math.max(32, Math.round(sourceCanvas.height * ratio));
+  const sample = document.createElement('canvas');
+  sample.width=width; sample.height=height;
+  const sampleCtx=sample.getContext('2d', {willReadFrequently:true});
+  sampleCtx.drawImage(sourceCanvas,0,0,width,height);
+  const rgba=sampleCtx.getImageData(0,0,width,height).data;
+  const gray=new Float32Array(width*height);
+  for(let i=0,p=0;i<rgba.length;i+=4,p++) gray[p]=0.299*rgba[i]+0.587*rgba[i+1]+0.114*rgba[i+2];
+  // A small blur suppresses text strokes while retaining the page boundary.
+  const blur=new Float32Array(gray.length);
+  for(let y=1;y<height-1;y++) for(let x=1;x<width-1;x++){
+    let total=0;
+    for(let oy=-1;oy<=1;oy++) for(let ox=-1;ox<=1;ox++) total+=gray[(y+oy)*width+x+ox];
+    blur[y*width+x]=total/9;
+  }
+  const magnitudes=[];
+  const edges=[];
+  for(let y=2;y<height-2;y++) for(let x=2;x<width-2;x++){
+    const at=(yy,xx)=>blur[yy*width+xx];
+    const gx=-at(y-1,x-1)+at(y-1,x+1)-2*at(y,x-1)+2*at(y,x+1)-at(y+1,x-1)+at(y+1,x+1);
+    const gy=-at(y-1,x-1)-2*at(y-1,x)-at(y-1,x+1)+at(y+1,x-1)+2*at(y+1,x)+at(y+1,x+1);
+    const magnitude=Math.hypot(gx,gy);
+    magnitudes.push(magnitude);
+    edges.push({x,y,magnitude});
+  }
+  if(!edges.length) return null;
+  magnitudes.sort((a,b)=>a-b);
+  const threshold=Math.max(18, magnitudes[Math.floor(magnitudes.length*0.82)]);
+  const strong=edges.filter(e=>e.magnitude>=threshold);
+  if(strong.length<24) return null;
+  // The convex hull removes most interior text/line corners from consideration.
+  const hull=convexHull(strong.map(e=>({x:e.x,y:e.y,magnitude:e.magnitude})));
+  if(hull.length<4) return null;
+  const choose=(scoreFn)=>hull.reduce((best,p)=>!best || scoreFn(p)>scoreFn(best) ? p : best,null);
+  const tl=choose(p=>-p.x-p.y), tr=choose(p=>p.x-p.y), br=choose(p=>p.x+p.y), bl=choose(p=>-p.x+p.y);
+  const selected=[tl,tr,br,bl];
+  if(selected.some(p=>!p) || new Set(selected).size<4) return null;
+  const area=Math.abs(selected.reduce((sum,p,i)=>{const q=selected[(i+1)%4];return sum+p.x*q.y-q.x*p.y;},0))/2;
+  if(area < width*height*0.06) return null;
+  const normalized=selected.map(p=>({x:clamp(p.x/width,0,1), y:clamp(p.y/height,0,1)}));
+  // Reject detections that collapse to the canvas border at all four corners.
+  const spanX=Math.max(...normalized.map(p=>p.x))-Math.min(...normalized.map(p=>p.x));
+  const spanY=Math.max(...normalized.map(p=>p.y))-Math.min(...normalized.map(p=>p.y));
+  if(spanX<0.25 || spanY<0.25) return null;
+  return { tl:normalized[0], tr:normalized[1], br:normalized[2], bl:normalized[3] };
+}
+async function autoDetectCrop(){
+  const button=document.getElementById('autoDetectCropBtn');
+  button.disabled=true;
+  const previousTool=currentTool;
+  try{
+    currentTool='crop';
+    document.querySelectorAll('.editor-tools .tool-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('.editor-tools .tool-btn[data-tool="crop"]').classList.add('active');
+    showCropBox();
+    const detected=detectDocumentCorners(baseCanvas);
+    if(!detected){
+      showToast('Could not confidently find document corners — adjust them manually', 'error');
+      return;
+    }
+    cropQuad=detected;
+    renderCropBox();
+    showToast('Document corners detected — review before applying', 'success');
+  } catch(err){
+    console.error('Auto-detect corners failed',err);
+    showToast('Corner detection failed — adjust them manually', 'error');
+  } finally{
+    button.disabled=false;
+  }
+}
 function applyCrop(){
   if(!cropQuad) return;
   bakeSignatureOverlays(); // don't lose in-progress signature placement to the crop
@@ -2161,6 +2254,7 @@ document.querySelectorAll('.editor-tools .tool-btn').forEach(btn=>{
     if(currentTool === 'crop') showCropBox(); else hideCropBox();
   });
 });
+document.getElementById('autoDetectCropBtn').addEventListener('click', autoDetectCrop);
 document.getElementById('undoBtn').addEventListener('click', undoEditor);
 document.getElementById('clearBtn').addEventListener('click', clearEditorMarks);
 document.getElementById('applyCropBtn').addEventListener('click', ()=>{
