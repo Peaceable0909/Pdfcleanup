@@ -542,12 +542,20 @@
   .editor-modal{ position:fixed; inset:0; background:rgba(11,37,69,0.94); z-index:300; display:none; flex-direction:column; }
   .editor-modal.open{ display:flex; }
   .editor-topbar{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 20px; flex-wrap:wrap; gap:10px; background: rgba(255,255,255,0.04);
+    display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:16px;
+    padding:14px 20px; background: rgba(255,255,255,0.04);
     border-bottom: 1px solid rgba(255,255,255,0.08);
   }
-  .editor-title{ color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; }
-  .editor-tools{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .editor-title{ color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; padding-top:9px; white-space:nowrap; }
+  .editor-tools{ display:flex; align-items:stretch; justify-content:flex-end; gap:8px; flex-wrap:wrap; min-width:0; }
+  .editor-tool-group{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:5px 7px;
+    border:1px solid rgba(255,255,255,0.12); border-radius:9px; background:rgba(0,0,0,0.10);
+  }
+  .editor-tool-group-label{
+    width:100%; color:rgba(255,255,255,0.52); font:600 9px/1 'Inter',sans-serif;
+    letter-spacing:.08em; text-transform:uppercase; padding:1px 2px 2px;
+  }
   .editor-tools .tool-btn{
     background: rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.2);
     padding:7px 12px; border-radius:7px; font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer;
@@ -564,6 +572,23 @@
     transition: background .15s ease;
   }
   .editor-tools button.plain:hover{ background: rgba(255,255,255,0.12); }
+  .editor-tools button:disabled{ opacity:.5; cursor:not-allowed; }
+  .editor-action-group{ background:rgba(47,99,232,0.08); border-color:rgba(102,144,245,0.28); }
+  .editor-action-group .btn-primary, .editor-action-group .btn-secondary{ white-space:nowrap; }
+  @media (max-width: 980px){
+    .editor-topbar{ grid-template-columns:1fr; gap:8px; }
+    .editor-title{ padding-top:0; }
+    .editor-tools{ justify-content:flex-start; }
+  }
+  @media (max-width: 620px){
+    .editor-topbar{ padding:10px; }
+    .editor-tools{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+    .editor-tool-group{ min-width:0; }
+    .editor-tool-group-label{ font-size:8px; }
+    .editor-action-group{ grid-column:1 / -1; justify-content:flex-end; }
+    .editor-tools button.plain, .editor-tools .tool-btn{ padding:6px 9px; font-size:11.5px; }
+    .editor-tools input[type=range]{ width:64px; }
+  }
   .editor-canvas-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; overflow:auto; }
   #editorStage{ position:relative; }
   #editorBaseCanvas, #editorDrawCanvas{ position:absolute; top:0; left:0; border-radius:4px; }
@@ -764,31 +789,42 @@
   <div class="editor-topbar">
     <div class="editor-title">Markup page</div>
     <div class="editor-tools">
-      <button class="tool-btn active" data-tool="pen" type="button">Pen</button>
-      <button class="tool-btn" data-tool="eraser" type="button">Eraser</button>
-      <input type="color" id="penColor" value="#1f2937" title="Pen color" />
-      <input type="range" id="penWidth" min="1" max="18" value="3" title="Pen size" />
-      <button class="plain" id="undoBtn" type="button">Undo</button>
-      <button class="plain" id="clearBtn" type="button">Clear marks</button>
-      <span class="sep"></span>
-      <button class="tool-btn" data-tool="crop" type="button">Perspective crop</button>
-      <button class="plain" id="autoDetectCropBtn" type="button" title="Find the document edges automatically">Auto-detect corners</button>
-      <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply crop</button>
-      <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel crop</button>
-      <span class="sep"></span>
-      <div class="zoom-controls">
-        <button class="plain" id="zoomOutBtn" type="button" title="Zoom out">&minus;</button>
-        <span class="zoom-pct" id="zoomPct">100%</span>
-        <button class="plain" id="zoomInBtn" type="button" title="Zoom in">&#43;</button>
-        <button class="plain" id="zoomResetBtn" type="button" title="Reset zoom">Fit</button>
+      <div class="editor-tool-group" aria-label="Drawing tools">
+        <span class="editor-tool-group-label">Draw</span>
+        <button class="tool-btn active" data-tool="pen" type="button">Pen</button>
+        <button class="tool-btn" data-tool="eraser" type="button">Eraser</button>
+        <input type="color" id="penColor" value="#1f2937" title="Pen color" aria-label="Pen color" />
+        <input type="range" id="penWidth" min="1" max="18" value="3" title="Pen size" aria-label="Pen size" />
+        <button class="plain" id="undoBtn" type="button">Undo</button>
+        <button class="plain" id="clearBtn" type="button">Clear</button>
       </div>
-      <span class="sep"></span>
-      <button class="plain" id="addSignatureBtn" type="button">Insert signature</button>
-      <button class="plain" id="uploadSignatureBtn" type="button">Upload signature</button>
-      <button class="plain" id="redrawSignatureBtn" type="button">Draw signature</button>
-      <span class="sep"></span>
-      <button class="btn-secondary" id="editorCancel" type="button">Cancel</button>
-      <button class="btn-primary" id="editorSave" type="button">Save page</button>
+      <div class="editor-tool-group" aria-label="Crop tools">
+        <span class="editor-tool-group-label">Crop</span>
+        <button class="tool-btn" data-tool="crop" type="button">Perspective</button>
+        <button class="plain" id="autoDetectCropBtn" type="button" title="Find the document edges automatically">Auto-detect</button>
+        <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply</button>
+        <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel</button>
+      </div>
+      <div class="editor-tool-group" aria-label="Zoom tools">
+        <span class="editor-tool-group-label">View</span>
+        <div class="zoom-controls">
+          <button class="plain" id="zoomOutBtn" type="button" title="Zoom out">&minus;</button>
+          <span class="zoom-pct" id="zoomPct">100%</span>
+          <button class="plain" id="zoomInBtn" type="button" title="Zoom in">&#43;</button>
+          <button class="plain" id="zoomResetBtn" type="button" title="Reset zoom">Fit</button>
+        </div>
+      </div>
+      <div class="editor-tool-group" aria-label="Signature tools">
+        <span class="editor-tool-group-label">Sign</span>
+        <button class="plain" id="addSignatureBtn" type="button">Insert</button>
+        <button class="plain" id="uploadSignatureBtn" type="button">Upload</button>
+        <button class="plain" id="redrawSignatureBtn" type="button">Draw</button>
+      </div>
+      <div class="editor-tool-group editor-action-group" aria-label="Page actions">
+        <span class="editor-tool-group-label">Done</span>
+        <button class="btn-secondary" id="editorCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="editorSave" type="button">Save page</button>
+      </div>
     </div>
   </div>
   <div class="editor-canvas-wrap">
