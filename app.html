@@ -281,10 +281,18 @@
     width:148px; height: 208px; border: 1.5px dashed var(--tan-dark); border-radius:10px;
     display:flex; align-items:center; justify-content:center; color: var(--ink-soft);
     font-size:12px; text-align:center; cursor:pointer; background: var(--paper-dim);
-    transition: background .15s ease, border-color .15s ease, transform .1s ease;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease, box-shadow .15s ease;
   }
   .add-page-card:hover{ background: var(--tan); border-color: var(--stamp-dim); }
   .add-page-card:active{ transform: scale(0.98); }
+  .add-page-card.drag-over{
+    background:rgba(47,99,232,0.12); border-color:var(--stamp); border-width:2px;
+    box-shadow:0 0 0 4px rgba(47,99,232,0.14); color:var(--ink);
+  }
+  .add-page-card .add-page-card-content{ display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
+  .add-page-card .add-page-card-plus{ font-size:26px; line-height:1; color:var(--stamp); font-weight:300; }
+  .add-page-card .add-page-card-label{ font-weight:600; }
+  .add-page-card .add-page-card-hint{ font-size:10.5px; color:var(--ink-soft); }
 
   .no-doc-selected{
     flex:1; display:flex; align-items:center; justify-content:center;
@@ -1807,10 +1815,37 @@ function renderWorkspace(){
 
   const addCard = document.createElement('div');
   addCard.className = 'add-page-card';
-  addCard.textContent = 'Add pages';
-  addCard.addEventListener('click', ()=>{
+  addCard.setAttribute('role','button');
+  addCard.setAttribute('tabindex','0');
+  addCard.setAttribute('aria-label','Add pages by choosing files or dropping them here');
+  addCard.innerHTML = `<div class="add-page-card-content">
+    <span class="add-page-card-plus" aria-hidden="true">+</span>
+    <span class="add-page-card-label">Add pages</span>
+    <span class="add-page-card-hint">Click or drop files here</span>
+  </div>`;
+  const choosePages = ()=>{
     document.getElementById('addPagesInput').dataset.targetDoc = doc.id;
     document.getElementById('addPagesInput').click();
+  };
+  addCard.addEventListener('click', choosePages);
+  addCard.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choosePages(); }
+  });
+  ['dragenter','dragover'].forEach(evt=>addCard.addEventListener(evt, (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    if(e.dataTransfer?.types?.includes('Files')){
+      addCard.classList.add('drag-over');
+      e.dataTransfer.dropEffect='copy';
+    }
+  }));
+  addCard.addEventListener('dragleave', (e)=>{
+    e.preventDefault();
+    if(!addCard.contains(e.relatedTarget)) addCard.classList.remove('drag-over');
+  });
+  addCard.addEventListener('drop', (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    addCard.classList.remove('drag-over');
+    if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files, doc.id);
   });
   grid.appendChild(addCard);
 }
