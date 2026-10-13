@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Intake" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <title>Intake — Student Document Organizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -733,15 +742,17 @@
     color:#fff; font-family:'Inter',sans-serif; font-size:12px; min-width:42px; text-align:center;
   }
 </style>
+<link rel="stylesheet" href="ios.css" />
+<script src="icons.js"></script>
 </head>
-<body>
+<body class="ios-app">
 
 <div class="app">
 
   <header class="top">
     <div class="brand">
       <div class="brand-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h6M9 16h6M9 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
       </div>
       <div class="brand-text">
         <div class="mark">Student Document Organizer</div>
@@ -759,8 +770,8 @@
       <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
         <span class="dot"></span><span id="saveIndicatorText">Saved</span>
       </div>
-      <button class="btn-clear-data" id="clearDataBtn" type="button" title="Clear all uploaded files and documents">Start over</button>
-      <a class="btn-clear-data" href="word-editor.html" style="text-decoration:none;">Word editor &rarr;</a>
+      <button class="btn-clear-data" id="clearDataBtn" type="button" data-icon="reset" title="Clear all uploaded files and documents">Start over</button>
+      <a class="btn-clear-data" href="word-editor.html" data-icon="word" style="text-decoration:none;">Word editor</a>
     </div>
   </header>
 
@@ -770,8 +781,8 @@
       <div class="rail-head">
         <h2>Documents</h2>
         <div style="display:flex; gap:8px;">
-          <button class="btn-add" id="autoDetectAllBtn" type="button" title="Run OCR auto-detect on every document">Auto-name all</button>
-          <button class="btn-add" id="newDocBtn" type="button">New document</button>
+          <button class="btn-add" id="autoDetectAllBtn" type="button" data-icon="sparkle" title="Run OCR auto-detect on every document">Auto-name all</button>
+          <button class="btn-add" id="newDocBtn" type="button" data-icon="plus">New document</button>
         </div>
       </div>
       <div class="doc-list" id="docList">
@@ -793,12 +804,11 @@
 
       <div class="dropzone" id="dropzone">
         <div class="dz-icon">
-          <svg viewBox="0 0 18 18" fill="none"><path d="M9 12V3m0 0L5.5 6.5M9 3l3.5 3.5M3.5 12v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-icon="upload"></span>
         </div>
         <h3>Drop the student's files here</h3>
         <p>Passports, transcripts, scanned pages, bank statements — mix of PDFs and photos is fine.</p>
-        <button class="btn-primary btn-icon" id="chooseFilesBtn" type="button">
-          <svg viewBox="0 0 18 18" width="15" height="15"><path d="M9 12V3m0 0L5.5 6.5M9 3l3.5 3.5M3.5 12v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="btn-primary btn-icon" id="chooseFilesBtn" type="button"><span data-icon="upload" style="display:contents"></span>
           Choose files
         </button>
         <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none" />
@@ -809,22 +819,18 @@
         <div>
           <div class="toolbar-title-row">
             <input id="toolbarTitleInput" class="toolbar-title-input" placeholder="Document type" />
-            <button class="icon-btn" id="toolbarEditBtn" type="button" title="Edit document type">
-              <svg viewBox="0 0 18 18"><path d="M12.5 2.5 15.5 5.5 6 15H3v-3L12.5 2.5Z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>
+            <button class="icon-btn" id="toolbarEditBtn" type="button" title="Edit document type"><span data-icon="pencil" style="display:contents"></span>
             </button>
-            <button class="icon-btn" id="autoDetectBtn" type="button" title="Auto-detect document type from page text (OCR)">
-              <svg viewBox="0 0 18 18"><path d="M4 14 12.5 5.5m0 0 1.7-1.7m-1.7 1.7 1.7 1.7M4 3v2.4M2.8 4.2h2.4M14.6 10.6V13M13.4 11.8h2.4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <button class="icon-btn" id="autoDetectBtn" type="button" title="Auto-detect document type from page text (OCR)"><span data-icon="wand" style="display:contents"></span>
             </button>
           </div>
           <div class="filename" id="toolbarFilename"></div>
         </div>
         <div class="toolbar-actions">
-          <button class="btn-secondary btn-icon add-pages-drop-target" id="addMoreBtn" type="button" title="Click to choose files, or drag files here">
-            <svg viewBox="0 0 18 18" width="14" height="14"><path d="M9 4v10M4 9h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <button class="btn-secondary btn-icon add-pages-drop-target" id="addMoreBtn" type="button" title="Click to choose files, or drag files here"><span data-icon="plus" style="display:contents"></span>
             Add pages <span class="add-pages-hint">/ drop files</span>
           </button>
-          <button class="btn-secondary btn-icon btn-danger-outline" id="deleteDocBtn" type="button">
-            <svg viewBox="0 0 18 18" width="14" height="14"><path d="M4 5.5h10M7.5 5.5V4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M5.5 5.5 6 14a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="btn-secondary btn-icon btn-danger-outline" id="deleteDocBtn" type="button"><span data-icon="trash" style="display:contents"></span>
             Delete document
           </button>
         </div>
@@ -838,18 +844,15 @@
   <footer class="download-bar">
     <div class="download-list" id="downloadList"></div>
     <div class="download-actions">
-      <button class="btn-secondary btn-icon" id="downloadSelectedBtn" type="button">
-        <svg viewBox="0 0 18 18" width="14" height="14"><path d="M9 3v8m0 0-3-3m3 3 3-3M4 13.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button class="btn-secondary btn-icon" id="downloadSelectedBtn" type="button"><span data-icon="download" style="display:contents"></span>
         Download selected
       </button>
-      <button class="btn-primary btn-icon" id="downloadZipBtn" type="button">
-        <svg viewBox="0 0 18 18" width="14" height="14"><path d="M9 3v8m0 0-3-3m3 3 3-3M4 13.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button class="btn-primary btn-icon" id="downloadZipBtn" type="button"><span data-icon="zip" style="display:contents"></span>
         Download all as ZIP
       </button>
     </div>
     <div class="compress-panel" id="compressPanel">
-      <span class="cp-label">
-        <svg viewBox="0 0 18 18" width="15" height="15" fill="none"><path d="M3 7l4-4m0 0v3.5M7 3H3.5M15 11l-4 4m0 0v-3.5M11 15h3.5M3 3l4.5 4.5M15 15l-4.5-4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="cp-label"><span data-icon="compress" style="display:contents"></span>
         Compress
       </span>
       <div class="seg" id="compressSeg" role="radiogroup" aria-label="PDF compression level">
@@ -871,11 +874,11 @@
   <button class="lb-close" id="lbClose" type="button">&times;</button>
   <img id="lbImg" src="" alt="Page preview" />
   <div class="lb-controls">
-    <button id="lbPrev" type="button">Previous page</button>
+    <button id="lbPrev" type="button" data-icon="left">Previous</button>
     <span id="lbPageLabel">Page 1 / 1</span>
-    <button id="lbNext" type="button">Next page</button>
-    <button id="lbRotate" type="button">Rotate</button>
-    <button id="lbMarkup" type="button">Draw / Sign</button>
+    <button id="lbNext" type="button" data-icon="right">Next</button>
+    <button id="lbRotate" type="button" data-icon="rotate">Rotate</button>
+    <button id="lbMarkup" type="button" data-icon="pen">Draw / Sign</button>
   </div>
 </div>
 
@@ -886,39 +889,39 @@
     <div class="editor-tools">
       <div class="editor-tool-group" aria-label="Drawing tools">
         <span class="editor-tool-group-label">Draw</span>
-        <button class="tool-btn active" data-tool="pen" type="button">Pen</button>
-        <button class="tool-btn" data-tool="eraser" type="button">Eraser</button>
+        <button class="tool-btn active" data-tool="pen" type="button" data-icon="pen">Pen</button>
+        <button class="tool-btn" data-tool="eraser" type="button" data-icon="eraser">Eraser</button>
         <input type="color" id="penColor" value="#1f2937" title="Pen color" aria-label="Pen color" />
         <input type="range" id="penWidth" min="1" max="18" value="3" title="Pen size" aria-label="Pen size" />
-        <button class="plain" id="undoBtn" type="button">Undo</button>
-        <button class="plain" id="clearBtn" type="button">Clear</button>
+        <button class="plain" id="undoBtn" type="button" data-icon="undo">Undo</button>
+        <button class="plain" id="clearBtn" type="button" data-icon="clear">Clear</button>
       </div>
       <div class="editor-tool-group" aria-label="Crop tools">
         <span class="editor-tool-group-label">Crop</span>
-        <button class="tool-btn" data-tool="crop" type="button">Perspective</button>
-        <button class="plain" id="autoDetectCropBtn" type="button" title="Find the document edges automatically">Auto-detect</button>
-        <button class="plain" id="applyCropBtn" type="button" style="display:none">Apply</button>
-        <button class="plain" id="cancelCropBtn" type="button" style="display:none">Cancel</button>
+        <button class="tool-btn" data-tool="crop" type="button" data-icon="crop">Perspective</button>
+        <button class="plain" id="autoDetectCropBtn" type="button" data-icon="wand" title="Find the document edges automatically">Auto-detect</button>
+        <button class="plain" id="applyCropBtn" type="button" data-icon="check" style="display:none">Apply</button>
+        <button class="plain" id="cancelCropBtn" type="button" data-icon="close" style="display:none">Cancel</button>
       </div>
       <div class="editor-tool-group" aria-label="Zoom tools">
         <span class="editor-tool-group-label">View</span>
         <div class="zoom-controls">
-          <button class="plain" id="zoomOutBtn" type="button" title="Zoom out">&minus;</button>
+          <button class="plain" id="zoomOutBtn" type="button" title="Zoom out" data-icon="minus"></button>
           <span class="zoom-pct" id="zoomPct">100%</span>
-          <button class="plain" id="zoomInBtn" type="button" title="Zoom in">&#43;</button>
-          <button class="plain" id="zoomResetBtn" type="button" title="Reset zoom">Fit</button>
+          <button class="plain" id="zoomInBtn" type="button" title="Zoom in" data-icon="plus"></button>
+          <button class="plain" id="zoomResetBtn" type="button" title="Reset zoom" data-icon="zoomFit">Fit</button>
         </div>
       </div>
       <div class="editor-tool-group" aria-label="Signature tools">
         <span class="editor-tool-group-label">Sign</span>
-        <button class="plain" id="addSignatureBtn" type="button">Insert</button>
-        <button class="plain" id="uploadSignatureBtn" type="button">Upload</button>
-        <button class="plain" id="redrawSignatureBtn" type="button">Draw</button>
+        <button class="plain" id="addSignatureBtn" type="button" data-icon="signature">Insert</button>
+        <button class="plain" id="uploadSignatureBtn" type="button" data-icon="upload">Upload</button>
+        <button class="plain" id="redrawSignatureBtn" type="button" data-icon="pen">Draw</button>
       </div>
       <div class="editor-tool-group editor-action-group" aria-label="Page actions">
         <span class="editor-tool-group-label">Done</span>
         <button class="btn-secondary" id="editorCancel" type="button">Cancel</button>
-        <button class="btn-primary" id="editorSave" type="button">Save page</button>
+        <button class="btn-primary" id="editorSave" type="button" data-icon="check">Save page</button>
       </div>
     </div>
   </div>
@@ -1751,13 +1754,7 @@ function filenameFor(doc){
 
 /* ---------------- Rendering ---------------- */
 function iconSvg(name){
-  const icons = {
-    rotate: '<path d="M3 3v5h5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 9a5.5 5.5 0 1 0 1.6-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    trash: '<path d="M2.5 4h11M5.5 4V2.8c0-.4.3-.8.8-.8h3.4c.4 0 .8.3.8.8V4M6 4v8.2c0 .4.3.8.8.8h4.4c.4 0 .8-.3.8-.8V4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    expand: '<path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    pen: '<path d="M3 15 3.6 12.2 11.5 4.3a1.4 1.4 0 0 1 2 0l.9.9a1.4 1.4 0 0 1 0 2L6.5 15.1 3 15Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M10 5.7l2.3 2.3" stroke="currentColor" stroke-width="1.3"/>',
-  };
-  return `<svg viewBox="0 0 18 18">${icons[name]||''}</svg>`;
+  return window.iosIcon ? window.iosIcon(name) : '';
 }
 
 function render(){

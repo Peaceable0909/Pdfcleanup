@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="theme-color" content="#F2F2F7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Word Document Editor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -216,8 +223,10 @@
     .page{ padding: 48px 24px; }
   }
 </style>
+<link rel="stylesheet" href="ios.css" />
+<script src="icons.js"></script>
 </head>
-<body>
+<body class="ios-app">
 
 <div class="app">
   <header class="top">
@@ -238,16 +247,16 @@
       <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
         <span class="dot"></span><span id="saveIndicatorText">Saved</span>
       </div>
-      <a class="link-btn" href="app.html">PDF tool &rarr;</a>
-      <button class="link-btn" id="clearDocBtn" type="button">Start over</button>
+      <a class="link-btn" href="app.html" data-icon="docs">PDF tool</a>
+      <button class="link-btn" id="clearDocBtn" type="button" data-icon="reset">Start over</button>
     </div>
   </header>
 
   <div class="toolbar">
     <div class="grp">
-      <button class="tbtn-secondary" id="uploadDocxBtn" type="button">Upload .docx</button>
+      <button class="tbtn-secondary" id="uploadDocxBtn" type="button" data-icon="upload">Upload .docx</button>
       <input type="file" id="docxInput" accept=".docx" style="display:none" />
-      <button class="tbtn-secondary" id="newDocBtn" type="button">New</button>
+      <button class="tbtn-secondary" id="newDocBtn" type="button" data-icon="plus">New</button>
     </div>
     <div class="grp">
       <select class="tsel" id="blockFormatSelect" title="Paragraph style">
@@ -265,36 +274,36 @@
       </select>
     </div>
     <div class="grp">
-      <button class="tbtn" data-cmd="bold" title="Bold"><b>B</b></button>
-      <button class="tbtn" data-cmd="italic" title="Italic"><i>I</i></button>
-      <button class="tbtn" data-cmd="underline" title="Underline"><u>U</u></button>
-      <button class="tbtn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+      <button class="tbtn" data-cmd="bold" title="Bold"><span data-icon="bold" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="italic" title="Italic"><span data-icon="italic" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="underline" title="Underline"><span data-icon="underline" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="strikeThrough" title="Strikethrough"><span data-icon="strike" style="display:contents"></span></button>
     </div>
     <div class="grp">
-      <button class="tbtn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
-      <button class="tbtn" data-cmd="justifyCenter" title="Align center">&#8596;</button>
-      <button class="tbtn" data-cmd="justifyRight" title="Align right">&#8677;</button>
+      <button class="tbtn" data-cmd="justifyLeft" title="Align left"><span data-icon="alignLeft" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="justifyCenter" title="Align center"><span data-icon="alignCenter" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="justifyRight" title="Align right"><span data-icon="alignRight" style="display:contents"></span></button>
     </div>
     <div class="grp">
-      <button class="tbtn" data-cmd="insertUnorderedList" title="Bulleted list">&bull; list</button>
-      <button class="tbtn" data-cmd="insertOrderedList" title="Numbered list">1. list</button>
-      <button class="tbtn" data-cmd="outdent" title="Decrease indent">&larr;&#124;</button>
-      <button class="tbtn" data-cmd="indent" title="Increase indent">&#124;&rarr;</button>
+      <button class="tbtn" data-cmd="insertUnorderedList" title="Bulleted list"><span data-icon="listBullet" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="insertOrderedList" title="Numbered list"><span data-icon="listNumber" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="outdent" title="Decrease indent"><span data-icon="outdent" style="display:contents"></span></button>
+      <button class="tbtn" data-cmd="indent" title="Increase indent"><span data-icon="indent" style="display:contents"></span></button>
     </div>
     <div class="grp">
-      <button class="tbtn" data-cmd="undo" title="Undo">&#8630; Undo</button>
-      <button class="tbtn" data-cmd="redo" title="Redo">&#8631; Redo</button>
+      <button class="tbtn" data-cmd="undo" title="Undo"><span data-icon="undo" style="display:contents"></span>Undo</button>
+      <button class="tbtn" data-cmd="redo" title="Redo"><span data-icon="redo" style="display:contents"></span>Redo</button>
     </div>
     <div class="grp">
-      <button class="tbtn-secondary" id="insertImageBtn" type="button">Insert image</button>
+      <button class="tbtn-secondary" id="insertImageBtn" type="button" data-icon="image">Insert image</button>
       <input type="file" id="imageInput" accept="image/*" style="display:none" />
-      <button class="tbtn-secondary" id="insertSavedSigBtn" type="button">Insert signature</button>
-      <button class="tbtn-secondary" id="uploadSigBtn" type="button">Upload signature</button>
-      <button class="tbtn-secondary" id="drawSigBtn" type="button">Draw signature</button>
+      <button class="tbtn-secondary" id="insertSavedSigBtn" type="button" data-icon="signature">Insert signature</button>
+      <button class="tbtn-secondary" id="uploadSigBtn" type="button" data-icon="upload">Upload signature</button>
+      <button class="tbtn-secondary" id="drawSigBtn" type="button" data-icon="pen">Draw signature</button>
     </div>
     <div class="grp" style="margin-right:0; border-right:none;">
-      <button class="tbtn-secondary" id="downloadDocBtn" type="button">Download as Word (.doc)</button>
-      <button class="tbtn-primary" id="downloadPdfBtn" type="button">Download as PDF</button>
+      <button class="tbtn-secondary" id="downloadDocBtn" type="button" data-icon="word">Word (.doc)</button>
+      <button class="tbtn-primary" id="downloadPdfBtn" type="button" data-icon="download">PDF</button>
     </div>
   </div>
 
