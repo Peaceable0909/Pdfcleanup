@@ -43,6 +43,7 @@
     indent:   '<path d="M4 5h16M12 10h8M12 14h8M4 19h16"/><path d="M4.5 9.5L8 12l-3.5 2.5z"/>',
     image:    '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/>',
     filePdf:  '<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="M9 17v-4h1.5a1.2 1.2 0 0 1 0 2.4H9"/>',
+    shield:   '<path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/>',
     zoomFit:  '<path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/>'
   };
   window.iosIcon = function(name, cls){
