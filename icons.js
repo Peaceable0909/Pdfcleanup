@@ -44,6 +44,16 @@
     image:    '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/>',
     filePdf:  '<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="M9 17v-4h1.5a1.2 1.2 0 0 1 0 2.4H9"/>',
     shield:   '<path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/>',
+    cursor:   '<path d="M5 3l14 7.5-6 1.8-2.2 6.2L5 3Z"/>',
+    type:     '<path d="M5 7V4.5h14V7M12 4.5v15M9 19.5h6"/>',
+    highlighter:'<path d="M15 4l5 5-9 9H6v-5l9-9Z"/><path d="M4 21h9"/>',
+    square:   '<rect x="4.5" y="4.5" width="15" height="15" rx="2.5"/>',
+    circle:   '<circle cx="12" cy="12" r="8"/>',
+    lineDiag: '<path d="M5 19L19 5"/>',
+    arrow:    '<path d="M5 19L19 5M10 5h9v9"/>',
+    hash:     '<path d="M9.5 4L7.5 20M16.5 4l-2 16M4 9h16M3.5 15h16"/>',
+    droplet:  '<path d="M12 3.5c3.5 4 6 6.8 6 10a6 6 0 0 1-12 0c0-3.2 2.5-6 6-10Z"/>',
+    filePlus: '<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>',
     zoomFit:  '<path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/>'
   };
   window.iosIcon = function(name, cls){
