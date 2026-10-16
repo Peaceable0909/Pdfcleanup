@@ -5,13 +5,16 @@
 <meta name="theme-color" content="#FFFFFF" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Student Document Organizer — Stop renaming scans by hand</title>
-<meta name="description" content="Turn a messy folder of passport scans, transcripts, and bank statements into clean, correctly named PDFs — right in your browser." />
+<meta name="description" content="Turn a messy folder of passport scans, transcripts, and bank statements into clean, correctly named PDFs — then edit, sign and compress them. Free, private, right in your browser." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Student Document Organizer" />
+<meta property="og:description" content="Organize, rename, edit, sign and compress student documents. Everything stays on your device." />
 <style>
   :root{
   color-scheme:light;
@@ -237,10 +240,33 @@
   .b-wide{ grid-column: span 2; }
   .b-tall{ grid-row: span 2; }
 
+  /* ---------------- Tools ---------------- */
+  .tools{ background: var(--paper); }
+  .tool-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  .tool-card{
+    display:flex; flex-direction:column; gap:8px; padding:26px; border-radius:26px; background:#fff; text-decoration:none; color:var(--ink);
+    box-shadow:var(--shadow); transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .tool-card:hover{ transform:translateY(-4px); box-shadow:0 18px 40px rgba(0,0,0,.12); }
+  .tool-card:active{ transform:scale(.98); }
+  .tool-ic{
+    width:48px; height:48px; border-radius:13px; color:#fff; display:flex; align-items:center; justify-content:center; margin-bottom:10px;
+    background:linear-gradient(160deg,#4DA3FF,#0A6CFF 60%,#0057E0); box-shadow:0 6px 16px rgba(0,122,255,.32), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .tool-ic .ico{ width:26px; height:26px; vertical-align:middle; }
+  .tool-card:nth-child(2) .tool-ic{ background:linear-gradient(160deg,#6E6BFF,#5856D6); box-shadow:0 6px 16px rgba(88,86,214,.32), inset 0 1px 0 rgba(255,255,255,.3); }
+  .tool-card:nth-child(3) .tool-ic{ background:linear-gradient(160deg,#5BE07D,#30B94F); box-shadow:0 6px 16px rgba(52,199,89,.32), inset 0 1px 0 rgba(255,255,255,.3); }
+  .tool-card h3{ font-size:21px; font-weight:800; letter-spacing:-.03em; }
+  .tool-card p{ margin:0; color:var(--muted); font-size:15px; }
+  .tool-card ul{ margin:6px 0 0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px; }
+  .tool-card li{ background:var(--paper); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600; color:var(--muted); }
+  .tool-go{ margin-top:auto; padding-top:14px; color:var(--blue); font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+  .tool-go .ico{ width:16px; height:16px; vertical-align:middle; }
+
   /* ---------------- Trust / seal ---------------- */
-  .trust{ background: var(--paper); color:var(--ink); text-align:center; }
+  .trust{ background: #fff; color:var(--ink); text-align:center; }
   .trust .wrap{
-    background:#fff; border-radius:36px; box-shadow:var(--shadow); padding:64px 24px; max-width:960px;
+    background:var(--paper); border-radius:36px; padding:64px 24px; max-width:960px;
   }
   .seal-stage{ width:120px; height:120px; margin:0 auto 30px; position:relative; }
   .seal-ring{
@@ -263,11 +289,11 @@
   .trust p{ color: var(--muted); max-width:520px; margin:0 auto; font-size:16.5px; }
 
   /* ---------------- Final CTA ---------------- */
-  .final{ background: #fff; text-align:center; }
+  .final{ background: var(--paper); text-align:center; }
   .final h2{ font-size: clamp(1.9rem, 3.5vw, 2.8rem); font-weight:800; margin-bottom:18px; }
   .final p{ color: var(--muted); max-width:480px; margin:0 auto 34px; font-size:17px; }
 
-  footer{ background: var(--paper); color: var(--muted); padding:32px 24px calc(32px + env(safe-area-inset-bottom)); text-align:center; font-size:13px; border-top:.5px solid var(--rule); }
+  footer{ background: #fff; color: var(--muted); padding:32px 24px calc(32px + env(safe-area-inset-bottom)); text-align:center; font-size:13px; border-top:.5px solid var(--rule); }
   footer a{ color: var(--blue); text-decoration:none; font-weight:600; }
   footer a:hover{ text-decoration:underline; }
 
@@ -334,6 +360,7 @@
     .b-tall{ grid-row: span 1; }
     .section-pad{ padding:80px 20px; }
     .trust .wrap{ padding:48px 20px; border-radius:28px; }
+    .tool-grid{ grid-template-columns:1fr; }
   }
   @media (max-width: 880px){
     .hero{ padding:78px 20px 20px; align-items:flex-start; }
@@ -361,7 +388,7 @@
     .pain-row{ flex-direction:column; gap:6px; text-align:center; }
   }
 </style>
-<script src="icons.js"></script>
+<script src="assets/icons.js"></script>
 </head>
 <body>
 
@@ -500,15 +527,47 @@
         <p>No server, no upload. Documents never leave your device.</p>
       </div>
       <div class="bento-card">
-        <div class="icon"><span data-icon="zip" style="display:contents"></span></div>
-        <h4>One-click ZIP export</h4>
-        <p>Every document, correctly named, in a single download.</p>
+        <div class="icon"><span data-icon="compress" style="display:contents"></span></div>
+        <h4>Compress &amp; export</h4>
+        <p>Shrink files for email or portals, then grab everything as one ZIP.</p>
       </div>
       <div class="bento-card">
         <div class="icon"><span data-icon="pencil" style="display:contents"></span></div>
         <h4>Naming, your way</h4>
         <p>Edit any document's type by hand any time — auto-detect gets you 90% there.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="tools section-pad" id="tools">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Three tools, one private workspace</h2>
+      <p>Hand a document from one tool to the next. Nothing is ever uploaded.</p>
+    </div>
+    <div class="tool-grid">
+      <a class="tool-card" href="app.html">
+        <span class="tool-ic"><span data-icon="docs" style="display:contents"></span></span>
+        <h3>Organizer</h3>
+        <p>Drop in scans, photos and Word files. Name, order, rotate, compress and export them as clean PDFs.</p>
+        <ul><li>Auto-naming</li><li>Compress</li><li>ZIP export</li></ul>
+        <span class="tool-go">Open organizer <span data-icon="arrowRight" style="display:contents"></span></span>
+      </a>
+      <a class="tool-card" href="pdf-editor.html">
+        <span class="tool-ic"><span data-icon="pen" style="display:contents"></span></span>
+        <h3>PDF editor</h3>
+        <p>Click any text to change it. Add notes, highlight, sign, cover, merge and rearrange pages.</p>
+        <ul><li>Edit text</li><li>Sign</li><li>Merge</li><li>Watermark</li></ul>
+        <span class="tool-go">Open PDF editor <span data-icon="arrowRight" style="display:contents"></span></span>
+      </a>
+      <a class="tool-card" href="word-editor.html">
+        <span class="tool-ic"><span data-icon="word" style="display:contents"></span></span>
+        <h3>Word editor</h3>
+        <p>Open a .docx, fix the wording, add a signature, then download it as Word or PDF.</p>
+        <ul><li>.docx</li><li>Sign</li><li>PDF export</li></ul>
+        <span class="tool-go">Open Word editor <span data-icon="arrowRight" style="display:contents"></span></span>
+      </a>
     </div>
   </div>
 </section>
@@ -538,7 +597,8 @@
 </section>
 
 <footer>
-  Student Document Organizer — built for education consultants and admissions teams. <a href="app.html">Open the app →</a>
+  Student Document Organizer — built for education consultants and admissions teams.<br />
+  <a href="app.html">Organizer</a> &nbsp;·&nbsp; <a href="pdf-editor.html">PDF editor</a> &nbsp;·&nbsp; <a href="word-editor.html">Word editor</a>
 </footer>
 
 <div class="transition-overlay" id="transitionOverlay">

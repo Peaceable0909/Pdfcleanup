@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#FFFFFF" />
+<meta name="robots" content="noindex" />
+<title>Page not found</title>
+<style>
+  :root{ color-scheme:light; }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center;
+    background:#F2F2F7; color:#1C1C1E; -webkit-font-smoothing:antialiased;
+    font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
+  }
+  .card{ background:#fff; border-radius:28px; padding:44px 28px; max-width:420px; width:100%; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 10px 34px rgba(0,0,0,.08); }
+  .code{ font-size:64px; font-weight:800; letter-spacing:-.05em; color:#007AFF; line-height:1; }
+  h1{ margin:14px 0 8px; font-size:24px; font-weight:800; letter-spacing:-.03em; }
+  p{ margin:0 0 22px; color:#6E6E73; }
+  .links{ display:flex; flex-direction:column; gap:10px; }
+  a{ display:block; padding:13px 18px; border-radius:999px; text-decoration:none; font-weight:600; background:rgba(0,122,255,.1); color:#007AFF; }
+  a.primary{ background:#007AFF; color:#fff; box-shadow:0 8px 22px rgba(0,122,255,.3); }
+  a:focus-visible{ outline:3px solid rgba(0,122,255,.45); outline-offset:2px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="code">404</div>
+    <h1>We couldn't find that page</h1>
+    <p>The link may be old or mistyped. These will get you back on track.</p>
+    <div class="links">
+      <a class="primary" href="./">Go to the home page</a>
+      <a href="app.html">Document organizer</a>
+      <a href="pdf-editor.html">PDF editor</a>
+      <a href="word-editor.html">Word editor</a>
+    </div>
+  </main>
+<script>
+  // A 404 can be served from any path, so work out the site's base ("/" or "/repo-name/" on GitHub Pages).
+  (function(){
+    var base = /\.github\.io$/i.test(location.hostname) ? '/' + (location.pathname.split('/')[1] || '') + '/' : '/';
+    document.querySelectorAll('a[href]').forEach(function(a){ a.setAttribute('href', base + (a.getAttribute('href') === './' ? '' : a.getAttribute('href'))); });
+    var l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = base + 'assets/icons/favicon.svg'; document.head.appendChild(l);
+  })();
+</script>
+</body>
+</html>
