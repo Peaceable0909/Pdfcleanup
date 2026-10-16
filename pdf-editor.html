@@ -6,12 +6,13 @@
 <meta name="theme-color" content="#F2F2F7" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="PDF Editor" />
+<meta name="apple-mobile-web-app-title" content="PDFsort" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
-<title>PDF Editor — edit text, annotate, merge</title>
+<title>PDFsort — PDF editor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
@@ -197,13 +198,7 @@
 <div class="app">
 
   <header class="top">
-    <div class="brand">
-      <div class="brand-icon"><span data-icon="pen" style="display:contents"></span></div>
-      <div class="brand-text">
-        <div class="mark">PDF Editor</div>
-        <div class="sub">Edit text, annotate, sign, merge &amp; organize pages</div>
-      </div>
-    </div>
+    <a class="brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img class="brand-logo" src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="110" height="30" /></a>
     <nav class="tool-nav" aria-label="Tools">
       <a href="app.html" data-icon="docs" title="Document organizer"><span>Organize</span></a>
       <a href="pdf-editor.html" data-icon="pen" title="PDF editor" aria-current="page"><span>PDF</span></a>
@@ -992,7 +987,7 @@ async function buildPdf(){
       await placeText(label, 10, '#444444', 1, state.pn.pos);
     }
   }
-  out.setProducer('PDF Editor'); out.setModificationDate(new Date());
+  out.setProducer('PDFsort'); out.setModificationDate(new Date());
   return out.save();
 }
 async function savePdf(){

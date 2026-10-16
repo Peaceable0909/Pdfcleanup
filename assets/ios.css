@@ -371,3 +371,8 @@ select.tsel{ border:none !important; background:var(--ios-fill) !important; bord
 
 /* organizer header: keep the student field compact so the header stays on one row */
 @media (min-width:761px){ .student-field{ flex:0 1 230px; min-width:180px !important; } }
+
+/* ---------- Brand logo in the page headers ---------- */
+.brand{ text-decoration:none; }
+.brand-logo{ height:36px; width:auto; display:block; }
+@media (max-width:760px){ .brand-logo{ height:30px; } }

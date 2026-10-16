@@ -6,14 +6,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Student Document Organizer — Stop renaming scans by hand</title>
+<title>PDFsort — Organize, edit and compress student documents</title>
 <meta name="description" content="Turn a messy folder of passport scans, transcripts, and bank statements into clean, correctly named PDFs — then edit, sign and compress them. Free, private, right in your browser." />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Student Document Organizer" />
+<meta property="og:title" content="PDFsort" />
 <meta property="og:description" content="Organize, rename, edit, sign and compress student documents. Everything stays on your device." />
 <style>
   :root{
@@ -61,6 +62,7 @@
     box-shadow:0 2px 8px rgba(0,122,255,.35), inset 0 1px 0 rgba(255,255,255,.35);
     display:flex; align-items:center; justify-content:center;
   }
+  .nav-brand img{ height:36px; width:auto; display:block; }
   .nav-cta{
     background: var(--blue); color:#fff; border:none; padding:9px 18px; border-radius:999px;
     font-family:var(--font); font-weight:600; font-size:14px; cursor:pointer; text-decoration:none;
@@ -378,8 +380,7 @@
   @media (max-width: 520px){
     .nav{ padding:10px 14px; }
     .nav.scrolled{ padding:8px 14px; }
-    .nav-brand{ font-size:13.5px; gap:8px; white-space:nowrap; }
-    .nav-brand .nav-mark{ width:28px; height:28px; }
+    .nav-brand img{ height:30px; }
     .nav-cta{ padding:8px 14px; font-size:13px; white-space:nowrap; }
     .hero-actions{ flex-wrap:nowrap; gap:10px; }
     .hero-actions .btn-hero-primary, .hero-actions .btn-hero-secondary{ flex:1; justify-content:center; padding:13px 10px; font-size:15px; white-space:nowrap; text-align:center; }
@@ -393,12 +394,7 @@
 <body>
 
 <nav class="nav" id="nav">
-  <div class="nav-brand">
-    <div class="nav-mark">
-      <span data-icon="doc" style="display:contents"></span>
-    </div>
-    Student Document Organizer
-  </div>
+  <a class="nav-brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="116" height="31" /></a>
   <a class="nav-cta" href="app.html">Open the app</a>
 </nav>
 
@@ -597,7 +593,7 @@
 </section>
 
 <footer>
-  Student Document Organizer — built for education consultants and admissions teams.<br />
+  PDFsort — built for education consultants and admissions teams.<br />
   <a href="app.html">Organizer</a> &nbsp;·&nbsp; <a href="pdf-editor.html">PDF editor</a> &nbsp;·&nbsp; <a href="word-editor.html">Word editor</a>
 </footer>
 
