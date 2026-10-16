@@ -23,7 +23,7 @@
   --paper-dim:#F2F2F7;
   --paper-white:#FFFFFF;
   --ink:#1C1C1E;
-  --ink-soft:#8E8E93;
+  --ink-soft:#6E6E73;
   --tan:#E6F1FF;
   --tan-dark:#B9D8FF;
   --rule:rgba(60,60,67,.14);
@@ -347,3 +347,27 @@ select.tsel{ border:none !important; background:var(--ios-fill) !important; bord
   .title-field{ min-width:0 !important; flex:1 1 100%; max-width:none !important; }
   .header-right{ gap:8px !important; }
 }
+
+/* ---------- Tool switcher (shared by every page) ---------- */
+.tool-nav{
+  display:inline-flex; gap:2px; padding:2px; background:var(--ios-fill); border-radius:10px; flex-shrink:0;
+}
+.tool-nav a{
+  display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; color:var(--ink) !important;
+  font-size:13px; font-weight:600; text-decoration:none; white-space:nowrap; transition:background .15s ease, color .15s ease;
+}
+.tool-nav a .ico{ width:16px; height:16px; color:var(--ios-blue); }
+.tool-nav a:hover{ background:rgba(255,255,255,.6); }
+.tool-nav a[aria-current="page"]{ background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.08), 0 3px 8px rgba(0,0,0,.12); color:var(--ios-blue) !important; }
+@media (max-width:760px){
+  .tool-nav{ width:100%; order:5; }
+  .tool-nav a{ flex:1; justify-content:center; padding:7px 6px; font-size:12.5px; }
+}
+@media (max-width:1500px) and (min-width:761px){ .brand .sub{ display:none; } .student-field{ min-width:200px !important; } }
+
+/* organizer header: one compact count chip */
+.stats .count-chip b{ color:var(--ink) !important; }
+@media (max-width:760px){ .stats .count-chip{ font-size:11.5px; } }
+
+/* organizer header: keep the student field compact so the header stays on one row */
+@media (min-width:761px){ .student-field{ flex:0 1 230px; min-width:180px !important; } }

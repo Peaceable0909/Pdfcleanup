@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Intake" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <title>Intake — Student Document Organizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -741,8 +741,9 @@
     color:#fff; font-family:'Inter',sans-serif; font-size:12px; min-width:42px; text-align:center;
   }
 </style>
-<link rel="stylesheet" href="ios.css" />
-<script src="icons.js"></script>
+<link rel="stylesheet" href="assets/ios.css" />
+<script src="assets/icons.js"></script>
+<script src="assets/handoff.js"></script>
 </head>
 <body class="ios-app">
 
@@ -758,20 +759,21 @@
         <div class="sub">Upload, organize, convert & export documents</div>
       </div>
     </div>
+    <nav class="tool-nav" aria-label="Tools">
+      <a href="app.html" data-icon="docs" title="Document organizer" aria-current="page"><span>Organize</span></a>
+      <a href="pdf-editor.html" data-icon="pen" title="PDF editor"><span>PDF</span></a>
+      <a href="word-editor.html" data-icon="word" title="Word editor"><span>Word</span></a>
+    </nav>
     <div class="student-field">
       <label for="studentName">Student</label>
       <input id="studentName" type="text" placeholder="Full name" />
     </div>
     <div class="stats">
-      <div>Files in <b id="statFiles">0</b></div>
-      <div>Documents <b id="statDocs">0</b></div>
-      <div>Pages <b id="statPages">0</b></div>
+      <div class="count-chip"><b id="statFiles">0</b> files · <b id="statDocs">0</b> docs · <b id="statPages">0</b> pages</div>
       <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
         <span class="dot"></span><span id="saveIndicatorText">Saved</span>
       </div>
       <button class="btn-clear-data" id="clearDataBtn" type="button" data-icon="reset" title="Clear all uploaded files and documents">Start over</button>
-      <a class="btn-clear-data" href="pdf-editor.html" data-icon="pen" style="text-decoration:none;">PDF editor</a>
-      <a class="btn-clear-data" href="word-editor.html" data-icon="word" style="text-decoration:none;">Word editor</a>
     </div>
   </header>
 
@@ -830,6 +832,7 @@
           <button class="btn-secondary btn-icon add-pages-drop-target" id="addMoreBtn" type="button" title="Click to choose files, or drag files here"><span data-icon="plus" style="display:contents"></span>
             Add pages <span class="add-pages-hint">/ drop files</span>
           </button>
+          <button class="btn-secondary btn-icon" id="editPdfBtn" type="button" data-icon="pen" title="Open this document in the PDF editor to change text, add notes or sign it">Edit in PDF editor</button>
           <button class="btn-secondary btn-icon btn-danger-outline" id="deleteDocBtn" type="button"><span data-icon="trash" style="display:contents"></span>
             Delete document
           </button>
@@ -1155,7 +1158,10 @@ function setSaveIndicator(state){
 
 function serializeState(){
   const files = {};
+  const used = new Set();
+  documents.forEach(d => d.pages.forEach(p => used.add(p.fileId)));
   for(const [fid, entry] of Object.entries(fileStore)){
+    if(!used.has(fid)) continue;
     if(entry.kind === 'pdf'){
       files[fid] = { kind:'pdf', name: entry.name, arrayBuffer: entry.arrayBuffer };
     } else {
@@ -1751,6 +1757,18 @@ function filenameFor(doc){
   const type = sanitizeFilePart(doc.docType || 'Document');
   return `${student} - ${type}.pdf`;
 }
+// Two documents of the same type would otherwise export under the same name (and overwrite each other in the ZIP),
+// so repeats are numbered: "… - Transcript.pdf", "… - Transcript (2).pdf".
+function exportNames(){
+  const seen = new Map(), names = new Map();
+  documents.forEach(d=>{
+    const base = filenameFor(d).replace(/\.pdf$/i, ''), key = base.toLowerCase(), n = (seen.get(key) || 0) + 1;
+    seen.set(key, n);
+    names.set(d.id, n === 1 ? `${base}.pdf` : `${base} (${n}).pdf`);
+  });
+  return names;
+}
+const exportNameFor = doc => exportNames().get(doc.id) || filenameFor(doc);
 
 /* ---------------- Rendering ---------------- */
 function iconSvg(name){
@@ -1926,9 +1944,10 @@ function renderWorkspace(){
 function renderDownloadBar(){
   const list = document.getElementById('downloadList');
   list.innerHTML = '';
+  const names = exportNames();
   documents.forEach(doc=>{
     const label = document.createElement('label');
-    label.innerHTML = `<input type="checkbox" class="dl-check" data-doc="${doc.id}" checked /> ${escapeHtml(filenameFor(doc))}`;
+    label.innerHTML = `<input type="checkbox" class="dl-check" data-doc="${doc.id}" checked /> ${escapeHtml(names.get(doc.id))}`;
     list.appendChild(label);
   });
 }
@@ -2945,7 +2964,7 @@ function downloadBytes(bytes, filename){
 
 async function downloadDoc(doc){
   const out = await buildOutputPdf(doc);
-  downloadBytes(out.bytes, filenameFor(doc));
+  downloadBytes(out.bytes, exportNameFor(doc));
   return out;
 }
 
@@ -2958,7 +2977,7 @@ async function downloadSelected(){
     for(let i=0; i<checks.length; i++){
       const doc = documents.find(d=>d.id===checks[i].dataset.doc);
       if(doc){
-        updateLoading(`${compressLevel === 'none' ? 'Building' : 'Compressing'} "${filenameFor(doc)}" (${i+1}/${checks.length})…`);
+        updateLoading(`${compressLevel === 'none' ? 'Building' : 'Compressing'} "${exportNameFor(doc)}" (${i+1}/${checks.length})…`);
         const out = await downloadDoc(doc);
         before += out.before; after += out.after;
       }
@@ -2977,14 +2996,14 @@ async function downloadAllZip(){
   if(documents.length===0){ showToast('Nothing to download yet', 'error'); return; }
   showLoading('Packing ZIP…');
   try{
-    const zip = new JSZip();
+    const zip = new JSZip(), names = exportNames();
     let before = 0, after = 0;
     for(let i=0; i<documents.length; i++){
       const doc = documents[i];
-      updateLoading(`${compressLevel === 'none' ? 'Adding' : 'Compressing'} "${filenameFor(doc)}" (${i+1}/${documents.length})…`);
+      updateLoading(`${compressLevel === 'none' ? 'Adding' : 'Compressing'} "${names.get(doc.id)}" (${i+1}/${documents.length})…`);
       const out = await buildOutputPdf(doc);
       before += out.before; after += out.after;
-      zip.file(filenameFor(doc), out.bytes);
+      zip.file(names.get(doc.id), out.bytes);
     }
     updateLoading('Compressing ZIP…');
     const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level: 9 } });
@@ -3142,10 +3161,56 @@ dz.addEventListener('drop', (e)=>{
 });
 
 /* ---------------- Startup: restore previous session, then render ---------------- */
+/* ---------------- PDF editor handoff ---------------- */
+const toBuffer = bytes => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+
+async function openInPdfEditor(){
+  const doc = documents.find(d => d.id === selectedDocId);
+  if(!doc){ showToast('Select a document first', 'error'); return; }
+  if(!doc.pages.length){ showToast('Add some pages to this document first', 'error'); return; }
+  showLoading(`Opening "${filenameFor(doc)}" in the PDF editor…`);
+  try{
+    const bytes = await buildPdfForDocumentSafe(doc);
+    await Handoff.send('toEditor', { bytes: toBuffer(bytes), name: filenameFor(doc), docId: doc.id, docType: doc.docType });
+    flushSaveNow();
+    window.location.href = 'pdf-editor.html?from=organizer';
+  } catch(err){
+    console.error(err); hideLoading();
+    showToast("Couldn't open the PDF editor — see console for details", 'error');
+  }
+}
+async function importFromEditor(){
+  const q = new URLSearchParams(window.location.search);
+  if(q.get('from') !== 'editor') return;
+  window.history.replaceState(null, '', window.location.pathname);
+  const payload = await Handoff.take('toOrganizer');
+  if(!payload){ showToast('Nothing came back from the PDF editor', 'error'); return; }
+  const file = new File([payload.bytes], payload.name || 'Edited document.pdf', { type:'application/pdf' });
+  const doc = payload.docId ? documents.find(d => d.id === payload.docId) : null;
+  showLoading('Bringing your edits back…');
+  try{
+    if(doc){
+      const oldPages = doc.pages; doc.pages = [];
+      try{ await ingestPdf(file, doc.id); } catch(err){ doc.pages = oldPages; throw err; }
+      selectedDocId = doc.id;
+      showToast(`Updated "${doc.docType}" with your edits`, 'success');
+    } else {
+      await ingestPdf(file);
+      selectedDocId = documents[documents.length - 1].id;
+      showToast('Added the edited PDF to your documents', 'success');
+    }
+    render(); scheduleSave();
+  } catch(err){
+    console.error(err); showToast("Couldn't bring the edited PDF back", 'error');
+  } finally { hideLoading(); }
+}
+document.getElementById('editPdfBtn').addEventListener('click', openInPdfEditor);
+
 (async function init(){
   const restored = await restoreState().catch(err=>{ console.error(err); return false; });
   render();
-  if(restored) showToast('Restored your previous session', 'success');
+  if(restored && !window.location.search) showToast('Restored your previous session', 'success');
+  await importFromEditor();
 })();
 </script>
 </body>

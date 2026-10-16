@@ -5,14 +5,14 @@
 <meta name="theme-color" content="#F2F2F7" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Word Document Editor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.7.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -223,8 +223,8 @@
     .page{ padding: 48px 24px; }
   }
 </style>
-<link rel="stylesheet" href="ios.css" />
-<script src="icons.js"></script>
+<link rel="stylesheet" href="assets/ios.css" />
+<script src="assets/icons.js"></script>
 </head>
 <body class="ios-app">
 
@@ -236,9 +236,14 @@
       </div>
       <div class="brand-text">
         <div class="mark">Word Document Editor</div>
-        <div class="sub">Upload, edit text, and sign — separate from the PDF tool</div>
+        <div class="sub">Upload, edit text, and sign Word documents</div>
       </div>
     </div>
+    <nav class="tool-nav" aria-label="Tools">
+      <a href="app.html" data-icon="docs" title="Document organizer"><span>Organize</span></a>
+      <a href="pdf-editor.html" data-icon="pen" title="PDF editor"><span>PDF</span></a>
+      <a href="word-editor.html" data-icon="word" title="Word editor" aria-current="page"><span>Word</span></a>
+    </nav>
     <div class="title-field">
       <label for="docTitle">Title</label>
       <input id="docTitle" type="text" placeholder="Untitled document" />
@@ -247,8 +252,6 @@
       <div class="save-indicator" id="saveIndicator" title="Everything is saved automatically in this browser">
         <span class="dot"></span><span id="saveIndicatorText">Saved</span>
       </div>
-      <a class="link-btn" href="app.html" data-icon="docs">PDF tool</a>
-      <a class="link-btn" href="pdf-editor.html" data-icon="pen">PDF editor</a>
       <button class="link-btn" id="clearDocBtn" type="button" data-icon="reset">Start over</button>
     </div>
   </header>
