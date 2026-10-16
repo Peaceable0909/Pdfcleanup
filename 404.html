@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#FFFFFF" />
 <meta name="robots" content="noindex" />
-<title>Page not found</title>
+<title>Page not found — PDFsort</title>
 <style>
   :root{ color-scheme:light; }
   *{ box-sizing:border-box; }
@@ -15,6 +15,7 @@
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
   }
   .card{ background:#fff; border-radius:28px; padding:44px 28px; max-width:420px; width:100%; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 10px 34px rgba(0,0,0,.08); }
+  .logo{ display:block; margin:0 auto 22px; height:38px; width:auto; }
   .code{ font-size:64px; font-weight:800; letter-spacing:-.05em; color:#007AFF; line-height:1; }
   h1{ margin:14px 0 8px; font-size:24px; font-weight:800; letter-spacing:-.03em; }
   p{ margin:0 0 22px; color:#6E6E73; }
@@ -26,6 +27,7 @@
 </head>
 <body>
   <main class="card">
+    <img class="logo" id="logo" alt="PDFsort" width="140" height="38" />
     <div class="code">404</div>
     <h1>We couldn't find that page</h1>
     <p>The link may be old or mistyped. These will get you back on track.</p>
@@ -41,6 +43,7 @@
   (function(){
     var base = /\.github\.io$/i.test(location.hostname) ? '/' + (location.pathname.split('/')[1] || '') + '/' : '/';
     document.querySelectorAll('a[href]').forEach(function(a){ a.setAttribute('href', base + (a.getAttribute('href') === './' ? '' : a.getAttribute('href'))); });
+    document.getElementById('logo').src = base + 'assets/logo/pdfsort-logo-small.png';
     var l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/svg+xml'; l.href = base + 'assets/icons/favicon.svg'; document.head.appendChild(l);
   })();
 </script>

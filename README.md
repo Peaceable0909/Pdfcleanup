@@ -1,4 +1,6 @@
-# Student Document Organizer
+<p align="center"><img src="assets/logo/pdfsort-logo.png" alt="PDFsort" width="360" /></p>
+
+# PDFsort — student document organizer
 
 Turn a messy pile of scans, photos and Word files into clean, correctly named PDFs — then edit, sign and
 compress them. **Everything runs in the browser; no file is ever uploaded.**
@@ -24,7 +26,8 @@ assets/
   ios.css        shared iOS-style theme (loaded after each page's own styles)
   icons.js       shared line-icon set (<el data-icon="name">) + accessible labels
   handoff.js     organizer <-> PDF editor file handoff (IndexedDB)
-  icons/         app icon: favicon.svg, apple-touch-icon.png, icon-192/512.png
+  logo/          PDFsort logo (full, small, mark-only, original)
+  icons/         app icon: favicon, apple-touch-icon, icon-192/512, maskable
 .github/workflows/static.yml                              deploys the repo root to GitHub Pages
 ```
 
