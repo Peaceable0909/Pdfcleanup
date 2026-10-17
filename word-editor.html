@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="assets/theme.js"></script>
 <title>PDFsort — Word editor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -183,14 +184,14 @@
 
   .fatal-error{ position:fixed; inset:0; background: var(--paper); z-index:500; display:none; align-items:center; justify-content:center; padding:24px; }
   .fatal-error.show{ display:flex; }
-  .fatal-error .fatal-card{ background:#fff; border:1px solid var(--rule); border-radius:16px; padding:32px; max-width:440px; text-align:center; box-shadow:0 20px 60px rgba(16,24,40,0.15); }
+  .fatal-error .fatal-card{ background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:32px; max-width:440px; text-align:center; box-shadow:0 20px 60px rgba(16,24,40,0.15); }
   .fatal-error h2{ margin:0 0 8px; font-family:'Inter',sans-serif; font-size:17px; }
   .fatal-error p{ margin:0 0 18px; font-size:13.5px; color: var(--ink-soft); line-height:1.5; }
 
   /* ---- Signature pad / upload modals (shared pattern with the PDF tool) ---- */
   .sig-pad-modal{ position:fixed; inset:0; background: rgba(11,37,69,0.55); z-index:320; display:none; align-items:center; justify-content:center; padding:20px; }
   .sig-pad-modal.open{ display:flex; }
-  .sig-pad-card{ background:#fff; border-radius:14px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; max-width:94vw; }
+  .sig-pad-card{ background:var(--card); border-radius:14px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; max-width:94vw; }
   .sig-pad-card h3{ margin:0 0 4px; font-family:'Inter',sans-serif; }
   .sig-pad-card p.hint{ margin:0 0 14px; font-size:12px; color: var(--ink-soft); }
   #sigPadCanvas{ border:1.5px dashed var(--tan-dark); border-radius:8px; background:#fff; touch-action:none; cursor:crosshair; max-width:100%; }
@@ -231,7 +232,7 @@
 
 <div class="app">
   <header class="top">
-    <a class="brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img class="brand-logo" src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="110" height="30" /></a>
+    <a class="brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img class="brand-logo brand-logo-light" src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="110" height="30" /><img class="brand-logo brand-logo-dark" src="assets/logo/pdfsort-logo-dark-small.png" srcset="assets/logo/pdfsort-logo-dark.png 2x" alt="" width="110" height="30" loading="lazy" /></a>
     <nav class="tool-nav" aria-label="Tools">
       <a href="app.html" data-icon="docs" title="Document organizer"><span>Organize</span></a>
       <a href="pdf-editor.html" data-icon="pen" title="PDF editor"><span>PDF</span></a>
@@ -246,6 +247,7 @@
         <span class="dot"></span><span id="saveIndicatorText">Saved</span>
       </div>
       <button class="link-btn" id="clearDocBtn" type="button" data-icon="reset">Start over</button>
+      <button class="link-btn theme-toggle" type="button" data-theme-toggle><span class="i-sun" data-icon="sun"></span><span class="i-moon" data-icon="moon"></span></button>
     </div>
   </header>
 

@@ -27,6 +27,7 @@ assets/
   icons.js       shared line-icon set (<el data-icon="name">) + accessible labels
   handoff.js     organizer <-> PDF editor file handoff (IndexedDB)
   compress.js    PDF compression shared by the organizer and the PDF editor (one remembered setting)
+  theme.js       light / dark theme: applies the saved choice before first paint; any [data-theme-toggle] button switches it
   logo/          PDFsort logo (full, small, mark-only, original)
   icons/         app icon: favicon, apple-touch-icon, icon-192/512, maskable
 .github/workflows/static.yml                              deploys the repo root to GitHub Pages
@@ -51,6 +52,9 @@ settings, **Pages → Source** must be set to **GitHub Actions**.
 
 ## Good to know
 
+- **Dark mode**: the moon/sun button in every header switches theme. It starts in light mode (it does not follow
+  the device setting), remembers your choice in this browser, and keeps all open tabs in step. Document pages
+  (the Word page, the PDF page) stay white, and exported files are never affected by the theme.
 - Saved automatically in the browser (IndexedDB). **Start over** clears it.
 - **Compression** (organizer and PDF editor) turns pages into images, so text in compressed PDFs is no
   longer selectable. Choose *Off* to keep PDFs as they are. The level you pick is remembered and shared
