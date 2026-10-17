@@ -745,6 +745,7 @@
 <link rel="stylesheet" href="assets/ios.css" />
 <script src="assets/icons.js"></script>
 <script src="assets/handoff.js"></script>
+<script src="assets/compress.js"></script>
 </head>
 <body class="ios-app">
 
@@ -2775,30 +2776,12 @@ function dataUrlToBytes(dataUrl){
   return bytes;
 }
 
-/* ---------------- Compression ---------------- */
-const COMPRESS_LEVELS = {
-  none:     { label:'Off',      maxDim:0,    quality:1,    hint:'Original quality. Keeps text selectable in PDFs you uploaded.' },
-  light:    { label:'Light',    maxDim:2200, quality:0.82, hint:'Sharp, print-quality scans. Typically 30–60% smaller.' },
-  balanced: { label:'Balanced', maxDim:1600, quality:0.68, hint:'Good for email and online portals. Typically 50–80% smaller.' },
-  strong:   { label:'Strong',   maxDim:1100, quality:0.5,  hint:'Smallest files, readable on screen. Typically 70–90% smaller.' }
-};
-let compressLevel = 'none';
-let compressGray = false;
-const COMPRESS_NOTE = ' Compressed pages are saved as images (text won\u2019t be selectable).';
+/* ---------------- Compression (shared with the PDF editor: assets/compress.js) ---------------- */
+const COMPRESS_LEVELS = PDFCompress.LEVELS;
+const COMPRESS_NOTE = PDFCompress.NOTE;
+let { level: compressLevel, gray: compressGray } = PDFCompress.loadPrefs();
 
-function loadCompressPrefs(){
-  try{
-    const lv = localStorage.getItem('compressLevel');
-    if(lv && COMPRESS_LEVELS[lv]) compressLevel = lv;
-    compressGray = localStorage.getItem('compressGray') === '1';
-  }catch(e){}
-}
-function saveCompressPrefs(){
-  try{
-    localStorage.setItem('compressLevel', compressLevel);
-    localStorage.setItem('compressGray', compressGray ? '1' : '0');
-  }catch(e){}
-}
+function saveCompressPrefs(){ PDFCompress.savePrefs({ level: compressLevel, gray: compressGray }); }
 function renderCompressPanel(){
   document.querySelectorAll('#compressSeg button').forEach(b=>{
     const on = b.dataset.level === compressLevel;
@@ -2806,100 +2789,22 @@ function renderCompressPanel(){
     b.setAttribute('aria-checked', on ? 'true' : 'false');
   });
   document.getElementById('compressGray').checked = compressGray;
-  const hint = COMPRESS_LEVELS[compressLevel].hint;
-  document.getElementById('compressHint').textContent = compressLevel === 'none' ? hint : hint + COMPRESS_NOTE;
-}
-function formatBytes(n){
-  if(n < 1024) return n + ' B';
-  if(n < 1024*1024) return (n/1024).toFixed(n < 10*1024 ? 1 : 0) + ' KB';
-  return (n/(1024*1024)).toFixed(1) + ' MB';
+  const hint = compressLevel === 'none' ? 'Original quality. Keeps text selectable in PDFs you uploaded.' : COMPRESS_LEVELS[compressLevel].hint + COMPRESS_NOTE;
+  document.getElementById('compressHint').textContent = hint;
 }
 function showCompressResult(before, after){
   const el = document.getElementById('compressResult');
   if(compressLevel === 'none' || !before){ el.classList.remove('show'); return; }
-  const pct = Math.max(0, Math.round((1 - after/before) * 100));
-  el.textContent = pct > 0
-    ? `Saved ${pct}% \u00b7 ${formatBytes(before)} \u2192 ${formatBytes(after)}`
-    : `Already small \u00b7 ${formatBytes(after)}`;
+  el.textContent = PDFCompress.summary(before, after);
   el.classList.add('show');
-}
-
-// Draws a source (canvas or image) downscaled so its longest side <= maxDim, flattened onto white,
-// optionally grayscale, and returns JPEG bytes.
-async function canvasToJpegBytes(source, srcW, srcH, maxDim, quality, gray){
-  const ratio = maxDim ? Math.min(1, maxDim / Math.max(srcW, srcH)) : 1;
-  const w = Math.max(1, Math.round(srcW * ratio));
-  const h = Math.max(1, Math.round(srcH * ratio));
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(source, 0, 0, w, h);
-  if(gray){
-    const id = ctx.getImageData(0, 0, w, h);
-    const d = id.data;
-    for(let i=0; i<d.length; i+=4){
-      const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114) | 0;
-      d[i] = d[i+1] = d[i+2] = y;
-    }
-    ctx.putImageData(id, 0, 0);
-  }
-  const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', quality));
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  c.width = c.height = 0;
-  return bytes;
-}
-
-async function buildCompressedPdf(doc, level, gray){
-  const { maxDim, quality } = COMPRESS_LEVELS[level];
-  const outDoc = await PDFDocument.create();
-  for(const pg of doc.pages){
-    let jpg, pageW, pageH;
-    if(pg.annotatedDataUrl){
-      const img = await loadImage(pg.annotatedDataUrl);
-      jpg = await canvasToJpegBytes(img, img.naturalWidth, img.naturalHeight, maxDim, quality, gray);
-      pageW = img.naturalWidth; pageH = img.naturalHeight;
-    } else {
-      const fileEntry = fileStore[pg.fileId];
-      if(fileEntry.kind === 'pdf'){
-        const page = await fileEntry.pdfjsDoc.getPage(pg.pageNum);
-        const rotation = ((page.rotate || 0) + (pg.rotation || 0)) % 360;
-        const base = page.getViewport({ scale: 1, rotation });
-        const scale = maxDim ? Math.min(4, maxDim / Math.max(base.width, base.height)) : 2;
-        const vp = page.getViewport({ scale, rotation });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        jpg = await canvasToJpegBytes(canvas, canvas.width, canvas.height, 0, quality, gray);
-        canvas.width = canvas.height = 0;
-        pageW = base.width; pageH = base.height;
-      } else {
-        const loaded = await loadImage(fileEntry.dataUrl);
-        const img = await rotateImageToCanvas(loaded, pg.rotation || 0);
-        jpg = await canvasToJpegBytes(img, img.naturalWidth, img.naturalHeight, maxDim, quality, gray);
-        pageW = img.naturalWidth; pageH = img.naturalHeight;
-      }
-    }
-    const embedded = await outDoc.embedJpg(jpg);
-    const page = outDoc.addPage([pageW, pageH]);
-    page.drawImage(embedded, { x:0, y:0, width: pageW, height: pageH });
-  }
-  return outDoc.save();
 }
 
 // Returns the PDF bytes for a document, honouring the compression setting. Never returns a
 // compressed file that is larger than the uncompressed build.
-async function buildOutputPdf(doc){
+async function buildOutputPdf(doc, label){
   const original = await buildPdfForDocumentSafe(doc);
-  if(compressLevel === 'none') return { bytes: original, before: original.length, after: original.length };
-  const compressed = await buildCompressedPdf(doc, compressLevel, compressGray);
-  const useCompressed = compressed.length < original.length;
-  return { bytes: useCompressed ? compressed : original, before: original.length, after: Math.min(compressed.length, original.length) };
+  const r = await PDFCompress.best(original, compressLevel, compressGray, (p, n)=>{ if(label) updateLoading(`${label} \u00b7 page ${p}/${n}`); });
+  return { bytes: r.bytes, before: r.before, after: r.after };
 }
 
 async function buildPdfForDocumentSafe(doc){
@@ -2955,8 +2860,8 @@ function downloadBytes(bytes, filename){
   URL.revokeObjectURL(url);
 }
 
-async function downloadDoc(doc){
-  const out = await buildOutputPdf(doc);
+async function downloadDoc(doc, label){
+  const out = await buildOutputPdf(doc, label);
   downloadBytes(out.bytes, exportNameFor(doc));
   return out;
 }
@@ -2970,8 +2875,9 @@ async function downloadSelected(){
     for(let i=0; i<checks.length; i++){
       const doc = documents.find(d=>d.id===checks[i].dataset.doc);
       if(doc){
-        updateLoading(`${compressLevel === 'none' ? 'Building' : 'Compressing'} "${exportNameFor(doc)}" (${i+1}/${checks.length})…`);
-        const out = await downloadDoc(doc);
+        const label = `${compressLevel === 'none' ? 'Building' : 'Compressing'} "${exportNameFor(doc)}" (${i+1}/${checks.length})`;
+        updateLoading(`${label}…`);
+        const out = await downloadDoc(doc, label);
         before += out.before; after += out.after;
       }
     }
@@ -2993,8 +2899,9 @@ async function downloadAllZip(){
     let before = 0, after = 0;
     for(let i=0; i<documents.length; i++){
       const doc = documents[i];
-      updateLoading(`${compressLevel === 'none' ? 'Adding' : 'Compressing'} "${names.get(doc.id)}" (${i+1}/${documents.length})…`);
-      const out = await buildOutputPdf(doc);
+      const label = `${compressLevel === 'none' ? 'Adding' : 'Compressing'} "${names.get(doc.id)}" (${i+1}/${documents.length})`;
+      updateLoading(`${label}…`);
+      const out = await buildOutputPdf(doc, label);
       before += out.before; after += out.after;
       zip.file(names.get(doc.id), out.bytes);
     }
@@ -3019,7 +2926,6 @@ async function downloadAllZip(){
 }
 
 /* ---------------- Wiring ---------------- */
-loadCompressPrefs();
 renderCompressPanel();
 document.getElementById('compressSeg').addEventListener('click', (e)=>{
   const btn = e.target.closest('button[data-level]');

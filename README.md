@@ -9,7 +9,7 @@ compress them. **Everything runs in the browser; no file is ever uploaded.**
 | --- | --- |
 | [`index.html`](index.html) | Landing page |
 | [`app.html`](app.html) | **Organizer** — drop in PDFs, photos and `.docx`; auto-name with on-device OCR; reorder, rotate, crop, sign; **compress** (Light / Balanced / Strong, optional grayscale); export one PDF per document or a ZIP |
-| [`pdf-editor.html`](pdf-editor.html) | **PDF editor** — click text to edit it, add text, highlight, draw, shapes, whiteout, images, signature; rotate / reorder / delete / duplicate pages, blank pages, merge PDFs, page numbers, watermark |
+| [`pdf-editor.html`](pdf-editor.html) | **PDF editor** — click text to edit it, add text, highlight, draw, shapes, whiteout, images, signature; rotate / reorder / delete / duplicate pages, blank pages, merge PDFs, page numbers, watermark, **compress** (same Light / Balanced / Strong as the organizer, with a size check before you download) |
 | [`word-editor.html`](word-editor.html) | **Word editor** — open a `.docx`, edit, sign, download as Word or PDF |
 
 The tools hand documents to each other: **Edit in PDF editor** (organizer) opens the selected document in the
@@ -26,6 +26,7 @@ assets/
   ios.css        shared iOS-style theme (loaded after each page's own styles)
   icons.js       shared line-icon set (<el data-icon="name">) + accessible labels
   handoff.js     organizer <-> PDF editor file handoff (IndexedDB)
+  compress.js    PDF compression shared by the organizer and the PDF editor (one remembered setting)
   logo/          PDFsort logo (full, small, mark-only, original)
   icons/         app icon: favicon, apple-touch-icon, icon-192/512, maskable
 .github/workflows/static.yml                              deploys the repo root to GitHub Pages
@@ -51,8 +52,9 @@ settings, **Pages → Source** must be set to **GitHub Actions**.
 ## Good to know
 
 - Saved automatically in the browser (IndexedDB). **Start over** clears it.
-- **Compression** turns pages into images, so text in compressed PDFs is no longer selectable. Choose
-  *Off* to keep PDFs as they are.
+- **Compression** (organizer and PDF editor) turns pages into images, so text in compressed PDFs is no
+  longer selectable. Choose *Off* to keep PDFs as they are. The level you pick is remembered and shared
+  by both tools, and a compressed file is never larger than the original.
 - **PDF editor** hides the original text under a patch when you edit it — the old text is still inside the
   file, so don't use it for secure redaction. Password-protected PDFs must be unlocked first. Standard PDF
   fonts only (accented Latin works; Chinese or emoji become `?`, and it warns you).
