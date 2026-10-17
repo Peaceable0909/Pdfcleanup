@@ -48,6 +48,9 @@
   .pill.danger{ background:rgba(255,59,48,.1); color:var(--ios-red); }
   .pill .ico{ width:16px; height:16px; vertical-align:middle; }
   .pill.icon-only{ padding:8px 10px; }
+  .pill.on{ position:relative; background:rgba(0,122,255,.16); }
+  .pill.on::after{ content:""; position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%; background:var(--ios-green); box-shadow:0 0 0 2px #fff; }
+  @media (max-width:1400px) and (min-width:761px){ #openBtn .lbl{ display:none; } #openBtn{ padding:8px 10px; } }
 
   /* tools */
   .tools{
@@ -85,6 +88,8 @@
   .props .grp{ display:flex; align-items:center; gap:8px; }
   .seg2{ display:inline-flex; background:var(--ios-fill); border-radius:9px; padding:2px; }
   .seg2 button{ border:none; background:transparent; border-radius:7px; padding:5px 10px; cursor:pointer; font-weight:700; color:var(--ink); min-width:32px; }
+  .seg2.wide{ display:flex; width:100%; }
+  .seg2.wide button{ flex:1; padding:8px 6px; }
   .seg2 button.on{ background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.18); color:var(--ios-blue); }
 
   /* body */
@@ -193,6 +198,7 @@
 <link rel="stylesheet" href="assets/ios.css" />
 <script src="assets/icons.js"></script>
 <script src="assets/handoff.js"></script>
+<script src="assets/compress.js"></script>
 </head>
 <body class="ios-app">
 <div class="app">
@@ -210,6 +216,7 @@
       <button class="pill icon-only" id="undoBtn" type="button" data-icon="undo" title="Undo (Ctrl+Z)"></button>
       <button class="pill icon-only" id="redoBtn" type="button" data-icon="redo" title="Redo (Ctrl+Shift+Z)"></button>
       <button class="pill icon-only" id="docBtn" type="button" data-icon="hash" title="Page numbers &amp; watermark"></button>
+      <button class="pill icon-only" id="cmpBtn" type="button" data-icon="compress" title="Compress the PDF"></button>
       <button class="pill" id="toOrgBtn" type="button" data-icon="docs" title="Send this PDF to the document organizer"><span class="lbl" id="toOrgLbl">To organizer</span></button>
       <button class="pill primary" id="saveBtn" type="button" data-icon="download" title="Download the edited PDF"><span class="lbl">Download</span></button>
     </div>
@@ -255,6 +262,22 @@
   </div>
 </div>
 
+<div class="sheet-bg" id="cmpSheet">
+  <div class="sheet">
+    <h3>Compress</h3>
+    <p class="s">Make the PDF smaller before you download it &mdash; handy for email and online portals.</p>
+    <div class="seg2 wide" id="cmpSeg" role="radiogroup" aria-label="Compression level"></div>
+    <p class="s" id="cmpHint" style="margin:12px 0 4px"></p>
+    <div class="row"><label for="cmpGray"><b>Grayscale</b></label><input type="checkbox" class="switch" id="cmpGray" /></div>
+    <div class="row"><span>Result</span><b id="cmpResult" style="text-align:right">Not checked yet</b></div>
+    <div class="btns">
+      <button class="pill" id="cmpCheck" type="button">Check size</button>
+      <button class="pill primary" id="cmpDownload" type="button" data-icon="download">Download</button>
+      <button class="pill" id="cmpDone" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-bg" id="sigSheet">
   <div class="sheet">
     <h3>Sign</h3>
@@ -287,7 +310,7 @@ const TOOLS = [
 const state = {
   sources:{}, pages:[], origin:null, cur:0, zoom:1, fit:true, tool:'select', selected:null, editing:null,
   undo:[], redo:[], dirty:false, title:'document.pdf',
-  pn:{ on:false, pos:'bc', fmt:'n' }, wm:{ on:false, text:'CONFIDENTIAL', opacity:.15, color:'#FF3B30' }
+  cmp:{ level:'none', gray:false }, pn:{ on:false, pos:'bc', fmt:'n' }, wm:{ on:false, text:'CONFIDENTIAL', opacity:.15, color:'#FF3B30' }
 };
 const assets = {};            // imageId -> { dataUrl, mime }
 let pendingImage = null;      // imageId waiting to be placed
@@ -336,7 +359,7 @@ function undo(){ if(!state.undo.length) return; state.redo.push(snap()); restore
 function redo(){ if(!state.redo.length) return; state.undo.push(snap()); restore(state.redo.pop()); updateButtons(); }
 function updateButtons(){
   const has = state.pages.length > 0;
-  $('toOrgBtn').disabled = !has;
+  $('toOrgBtn').disabled = !has; if(typeof renderCmp === 'function') renderCmp();
   $('toOrgLbl').textContent = state.origin && state.origin.docId ? 'Save to organizer' : 'To organizer';
   $('toOrgBtn').title = state.origin && state.origin.docId ? 'Put your edits back into the document in the organizer' : 'Send this PDF to the document organizer as a new document';
   $('undoBtn').disabled = !state.undo.length; $('redoBtn').disabled = !state.redo.length;
@@ -990,17 +1013,30 @@ async function buildPdf(){
   out.setProducer('PDFsort'); out.setModificationDate(new Date());
   return out.save();
 }
-async function savePdf(){
+// Builds the finished PDF (all edits, page numbers, watermark) and applies the chosen compression.
+// The last result is kept so "Check size" followed by "Download" does not do the work twice.
+let exportCache = null;
+async function exportBytes(onProgress){
   if(state.editing) commitEdit();
+  const key = snap() + '|' + JSON.stringify([state.pn, state.wm, state.cmp]) + '|' + Object.keys(assets).length;
+  if(exportCache && exportCache.key === key) return exportCache.result;
+  const base = await buildPdf(), lossy = lossyText;
+  const result = await PDFCompress.best(base, state.cmp.level, state.cmp.gray, onProgress);
+  result.lossy = lossy; exportCache = { key, result };
+  return result;
+}
+async function savePdf(){
   if(!state.pages.length) return;
   loading(true, 'Building PDF…');
   try{
-    const bytes = await buildPdf(); const blob = new Blob([bytes], { type:'application/pdf' });
+    const r = await exportBytes((p, n)=> loading(true, `Compressing page ${p} of ${n}…`));
+    const blob = new Blob([r.bytes], { type:'application/pdf' });
     const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url;
     a.download = state.title.replace(/\.pdf$/i, '') + '-edited.pdf'; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=> URL.revokeObjectURL(url), 2000); state.dirty = false;
-    if(lossyText) toast('Downloaded — some characters (like Chinese or emoji) aren\u2019t available in standard PDF fonts and became “?”', 'error');
-    else toast(`Downloaded · ${bytes.length < 1048576 ? Math.round(bytes.length / 1024) + ' KB' : (bytes.length / 1048576).toFixed(1) + ' MB'}`, 'success');
+    const size = state.cmp.level === 'none' ? PDFCompress.formatBytes(r.after) : PDFCompress.summary(r.before, r.after);
+    if(r.lossy) toast('Downloaded \u2014 some characters (like Chinese or emoji) aren\u2019t available in standard PDF fonts and became \u201c?\u201d', 'error');
+    else toast(`Downloaded \u00b7 ${size}`, 'success');
   }catch(err){ console.error(err); toast("Couldn't build the PDF — see console for details", 'error'); }
   finally{ loading(false); }
 }
@@ -1050,6 +1086,40 @@ bind('wmOn', ()=> state.wm.on = $('wmOn').checked); bind('wmText', ()=> state.wm
 bind('wmOpacity', ()=> state.wm.opacity = $('wmOpacity').value / 100); bind('wmColor', ()=> state.wm.color = $('wmColor').value);
 ['pnOn','wmOn'].forEach(id => $(id).addEventListener('change', ()=> $(id).dispatchEvent(new Event('input'))));
 
+/* ----- compress sheet ----- */
+function renderCmp(){
+  const seg = $('cmpSeg');
+  if(!seg.children.length){
+    Object.keys(PDFCompress.LEVELS).forEach(k=>{
+      const b = document.createElement('button'); b.type = 'button'; b.dataset.level = k; b.setAttribute('role', 'radio'); b.textContent = PDFCompress.LEVELS[k].label; seg.appendChild(b);
+    });
+  }
+  seg.querySelectorAll('button').forEach(b=>{ const on = b.dataset.level === state.cmp.level; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  $('cmpGray').checked = state.cmp.gray; $('cmpGray').disabled = state.cmp.level === 'none';
+  $('cmpHint').textContent = PDFCompress.LEVELS[state.cmp.level].hint + (state.cmp.level === 'none' ? '' : PDFCompress.NOTE);
+  const active = state.cmp.level !== 'none';
+  $('cmpBtn').classList.toggle('on', active);
+  $('cmpBtn').title = active ? `Compress: ${PDFCompress.LEVELS[state.cmp.level].label}${state.cmp.gray ? ', grayscale' : ''}` : 'Compress the PDF';
+  $('cmpBtn').setAttribute('aria-label', $('cmpBtn').title); $('cmpBtn').disabled = !state.pages.length;
+}
+function setCmp(patch){ Object.assign(state.cmp, patch); PDFCompress.savePrefs(state.cmp); $('cmpResult').textContent = 'Not checked yet'; renderCmp(); }
+$('cmpBtn').addEventListener('click', ()=>{ $('cmpResult').textContent = 'Not checked yet'; renderCmp(); $('cmpSheet').classList.add('open'); });
+$('cmpSeg').addEventListener('click', e=>{ const b = e.target.closest('button[data-level]'); if(b) setCmp({ level:b.dataset.level }); });
+$('cmpGray').addEventListener('change', e=> setCmp({ gray:e.target.checked }));
+$('cmpDone').addEventListener('click', ()=> $('cmpSheet').classList.remove('open'));
+$('cmpSheet').addEventListener('click', e=>{ if(e.target === $('cmpSheet')) $('cmpSheet').classList.remove('open'); });
+$('cmpDownload').addEventListener('click', async ()=>{ $('cmpSheet').classList.remove('open'); await savePdf(); });
+$('cmpCheck').addEventListener('click', async ()=>{
+  if(!state.pages.length) return;
+  loading(true, 'Checking size…');
+  try{
+    const r = await exportBytes((p, n)=> loading(true, `Compressing page ${p} of ${n}…`));
+    $('cmpResult').textContent = state.cmp.level === 'none' ? PDFCompress.formatBytes(r.after)
+      : r.used ? PDFCompress.summary(r.before, r.after) : `${PDFCompress.formatBytes(r.before)} \u2014 already small, kept as is`;
+  }catch(err){ console.error(err); $('cmpResult').textContent = 'Could not check'; toast("Couldn't compress the PDF", 'error'); }
+  finally{ loading(false); }
+});
+
 const viewer = $('viewer');
 ['dragenter','dragover'].forEach(ev => viewer.addEventListener(ev, e=>{ if(dragFrom !== null) return; if(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')){ e.preventDefault(); viewer.classList.add('drag'); } }));
 ['dragleave','drop'].forEach(ev => viewer.addEventListener(ev, e=>{ viewer.classList.remove('drag'); }));
@@ -1060,7 +1130,8 @@ viewer.addEventListener('drop', e=>{
 let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT = setTimeout(()=>{ if(state.fit && state.pages.length) renderStage(); }, 150); });
 window.addEventListener('beforeunload', e=>{ if(state.dirty && state.pages.length){ e.preventDefault(); e.returnValue = ''; } });
 
-renderTools(); renderProps(); updateButtons();
+state.cmp = PDFCompress.loadPrefs();
+renderTools(); renderProps(); updateButtons(); renderCmp();
 openFromOrganizer();
 if(typeof pdfjsLib === 'undefined' || typeof PDFLib === 'undefined') toast("Couldn't load the PDF libraries. Check your connection and reload.", 'error');
 </script>
