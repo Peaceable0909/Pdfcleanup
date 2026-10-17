@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<script src="assets/theme.js"></script>
 <title>PDFsort — Organize, edit and compress student documents</title>
 <meta name="description" content="Turn a messy folder of passport scans, transcripts, and bank statements into clean, correctly named PDFs — then edit, sign and compress them. Free, private, right in your browser." />
 <meta property="og:type" content="website" />
@@ -28,11 +29,12 @@
     --font:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif;
     --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.07);
     --glass:rgba(255,255,255,.78);
+    --bg:#FFFFFF; --card:#FFFFFF; --overlay:rgba(255,255,255,.9); --chip-bg:#F2F8FF; --chip-border:#9CC8FF;
   }
   *{ box-sizing:border-box; }
   html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
   body{
-    margin:0; background:#fff; color:var(--ink);
+    margin:0; background:var(--bg); color:var(--ink);
     font-family:var(--font); line-height:1.5; letter-spacing:-.011em;
     -webkit-font-smoothing:antialiased;
   }
@@ -63,6 +65,15 @@
     display:flex; align-items:center; justify-content:center;
   }
   .nav-brand img{ height:36px; width:auto; display:block; }
+  .nav-brand .logo-dark{ display:none; }
+  .nav-right{ display:flex; align-items:center; gap:10px; }
+  .theme-btn{
+    width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; color:var(--blue); background:rgba(0,122,255,.1);
+    display:inline-flex; align-items:center; justify-content:center; transition:background .15s ease, transform .15s ease;
+  }
+  .theme-btn:hover{ background:rgba(0,122,255,.18); } .theme-btn:active{ transform:scale(.94); }
+  .theme-btn .ico{ width:19px; height:19px; vertical-align:middle; }
+  .theme-btn .i-sun{ display:none; } .theme-btn .i-moon{ display:contents; }
   .nav-cta{
     background: var(--blue); color:#fff; border:none; padding:9px 18px; border-radius:999px;
     font-family:var(--font); font-weight:600; font-size:14px; cursor:pointer; text-decoration:none;
@@ -71,13 +82,36 @@
   .nav-cta:hover{ background:#1A88FF; box-shadow: 0 6px 18px rgba(0,122,255,.35); }
   .nav-cta:active{ transform:scale(.96); }
 
+  /* ---------------- Dark theme (switched on with <html data-theme="dark">, see assets/theme.js) ---------------- */
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --blue:#0A84FF; --blue-2:#4DA3FF; --ios-green:#30D158; --ios-red:#FF453A;
+    --ink:#F5F5F7; --ink-2:#F5F5F7; --paper:#111113; --paper-2:#2C2C2E; --muted:#9A9AA2; --rule:rgba(84,84,88,.6);
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 28px rgba(0,0,0,.4); --glass:rgba(28,28,30,.78);
+    --bg:#000000; --card:#1C1C1E; --overlay:rgba(0,0,0,.88); --chip-bg:#0A2A4D; --chip-border:#0B4A8F;
+  }
+  :root[data-theme="dark"] .nav-brand .logo-light{ display:none; }
+  :root[data-theme="dark"] .nav-brand .logo-dark{ display:block; }
+  :root[data-theme="dark"] .theme-btn{ background:rgba(10,132,255,.2); }
+  :root[data-theme="dark"] .theme-btn .i-sun{ display:contents; }
+  :root[data-theme="dark"] .theme-btn .i-moon{ display:none; }
+  :root[data-theme="dark"] .hero{
+    background: radial-gradient(ellipse 80% 60% at 75% 10%, rgba(10,132,255,.22), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 10% 90%, rgba(88,86,214,.18), transparent 60%), var(--bg);
+  }
+  :root[data-theme="dark"] .doc-card{ box-shadow: 0 0 0 .5px rgba(255,255,255,.1), 0 14px 34px rgba(0,0,0,.6); }
+  :root[data-theme="dark"] .bento-card:hover, :root[data-theme="dark"] .tool-card:hover{ box-shadow:0 18px 40px rgba(0,0,0,.6); }
+  :root[data-theme="dark"] .btn-hero-secondary{ background:rgba(10,132,255,.2); }
+  :root[data-theme="dark"] .hero-badge{ background:rgba(10,132,255,.18); }
+  :root[data-theme="dark"] .mv-detect .card, :root[data-theme="dark"] .mv-organize .p{ box-shadow:0 0 0 .5px rgba(255,255,255,.12), 0 6px 16px rgba(0,0,0,.5); }
+
   /* ---------------- Hero ---------------- */
   .hero-pin-outer{ height: 175vh; position:relative; }
   .hero-pin-inner{ position:sticky; top:0; height:100svh; overflow:hidden; }
   .hero{
     position:relative; height:100%;
     background: radial-gradient(ellipse 80% 60% at 75% 10%, rgba(0,122,255,.12), transparent 60%),
-                radial-gradient(ellipse 60% 50% at 10% 90%, rgba(90,169,255,.12), transparent 60%), #fff;
+                radial-gradient(ellipse 60% 50% at 10% 90%, rgba(90,169,255,.12), transparent 60%), var(--bg);
     display:flex; align-items:center; overflow:hidden; padding: 120px 24px 80px;
   }
   .hero-grid{
@@ -116,7 +150,7 @@
 
   .hero-stack{ position:relative; height:420px; }
   .doc-card{
-    position:absolute; width:150px; height:190px; background:#fff; border-radius:14px;
+    position:absolute; width:150px; height:190px; background:var(--card); border-radius:14px;
     box-shadow: 0 0 0 .5px rgba(0,0,0,.06), 0 14px 34px rgba(0,0,0,.14); padding:14px; left:50%; top:50%;
     transition: transform .05s linear, box-shadow .3s ease;
   }
@@ -146,7 +180,7 @@
   .section-head p{ color: var(--muted); font-size:17px; margin-top:14px; }
 
   /* ---------------- Pain points (pinned crossfade) ---------------- */
-  .pain{ background: #fff; }
+  .pain{ background: var(--bg); }
   .pain-pin-outer{ height: 340vh; position:relative; }
   .pain-pin-inner{
     position:sticky; top:0; height:100svh; display:flex; align-items:center; justify-content:center;
@@ -183,7 +217,7 @@
   .how-panel h3{ font-size: clamp(1.4rem, 2.3vw, 1.9rem); margin-bottom:12px; font-weight:800; }
   .how-panel p{ color: var(--muted); font-size:16px; max-width:38ch; }
   .how-visual{
-    height:260px; background:#fff; border-radius:26px;
+    height:260px; background:var(--card); border-radius:26px;
     box-shadow: var(--shadow); display:flex; align-items:center; justify-content:center;
     position:relative; overflow:hidden;
   }
@@ -191,13 +225,13 @@
 
   /* mini illustrations for each how-it-works step */
   .mv-upload{ display:flex; gap:10px; align-items:flex-end; }
-  .mv-upload .chip{ width:44px; height:56px; background: #F2F8FF; border:1.5px dashed #9CC8FF; border-radius:9px; animation: floatIn 2.4s ease-in-out infinite; }
+  .mv-upload .chip{ width:44px; height:56px; background: var(--chip-bg); border:1.5px dashed var(--chip-border); border-radius:9px; animation: floatIn 2.4s ease-in-out infinite; }
   .mv-upload .chip:nth-child(2){ animation-delay:.3s; }
   .mv-upload .chip:nth-child(3){ animation-delay:.6s; }
   @keyframes floatIn{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-10px); } }
 
   .mv-detect{ display:flex; flex-direction:column; align-items:center; gap:14px; }
-  .mv-detect .card{ width:110px; height:70px; background:#fff; border-radius:12px; position:relative; box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.08); }
+  .mv-detect .card{ width:110px; height:70px; background:var(--card); border-radius:12px; position:relative; box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.08); }
   .mv-detect .card .l{ position:absolute; left:10px; right:10px; height:4px; background:var(--paper-2); border-radius:2px; }
   .mv-detect .card .l1{ top:14px; } .mv-detect .card .l2{ top:24px; width:60%; }
   .mv-detect .tag{
@@ -207,7 +241,7 @@
   @keyframes tagPop{ 0%,20%{ opacity:0; transform:scale(0.8); } 35%,80%{ opacity:1; transform:scale(1); } 100%{ opacity:0; } }
 
   .mv-organize{ display:flex; gap:8px; }
-  .mv-organize .p{ width:44px; height:60px; background:#fff; border-radius:9px; box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 6px 14px rgba(0,0,0,.08); animation: shuffle 3s ease-in-out infinite; }
+  .mv-organize .p{ width:44px; height:60px; background:var(--card); border-radius:9px; box-shadow:0 0 0 .5px rgba(0,0,0,.08), 0 6px 14px rgba(0,0,0,.08); animation: shuffle 3s ease-in-out infinite; }
   .mv-organize .p:nth-child(2){ animation-delay:.2s; } .mv-organize .p:nth-child(3){ animation-delay:.4s; } .mv-organize .p:nth-child(4){ animation-delay:.6s; }
   @keyframes shuffle{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-6px) rotate(-3deg); } }
 
@@ -218,14 +252,14 @@
   @keyframes zipMove{ 0%{ transform: translateX(-45px); } 100%{ transform: translateX(45px); } }
 
   /* ---------------- Features bento ---------------- */
-  .features{ background: #fff; }
+  .features{ background: var(--bg); }
   .bento{ display:grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows:170px; gap:16px; }
   .bento-card{
     border-radius:26px; padding:22px; background: var(--paper);
     display:flex; flex-direction:column; justify-content:flex-end; gap:6px;
     transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
   }
-  .bento-card:hover{ transform: translateY(-3px); box-shadow: 0 16px 36px rgba(0,0,0,.1); background:#fff; }
+  .bento-card:hover{ transform: translateY(-3px); box-shadow: 0 16px 36px rgba(0,0,0,.1); background:var(--card); }
   .bento-card .icon{
     width:42px; height:42px; border-radius:11px; color:#fff; margin-bottom:auto;
     display:flex; align-items:center; justify-content:center;
@@ -246,7 +280,7 @@
   .tools{ background: var(--paper); }
   .tool-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
   .tool-card{
-    display:flex; flex-direction:column; gap:8px; padding:26px; border-radius:26px; background:#fff; text-decoration:none; color:var(--ink);
+    display:flex; flex-direction:column; gap:8px; padding:26px; border-radius:26px; background:var(--card); text-decoration:none; color:var(--ink);
     box-shadow:var(--shadow); transition:transform .2s ease, box-shadow .2s ease;
   }
   .tool-card:hover{ transform:translateY(-4px); box-shadow:0 18px 40px rgba(0,0,0,.12); }
@@ -266,7 +300,7 @@
   .tool-go .ico{ width:16px; height:16px; vertical-align:middle; }
 
   /* ---------------- Trust / seal ---------------- */
-  .trust{ background: #fff; color:var(--ink); text-align:center; }
+  .trust{ background: var(--bg); color:var(--ink); text-align:center; }
   .trust .wrap{
     background:var(--paper); border-radius:36px; padding:64px 24px; max-width:960px;
   }
@@ -295,14 +329,14 @@
   .final h2{ font-size: clamp(1.9rem, 3.5vw, 2.8rem); font-weight:800; margin-bottom:18px; }
   .final p{ color: var(--muted); max-width:480px; margin:0 auto 34px; font-size:17px; }
 
-  footer{ background: #fff; color: var(--muted); padding:32px 24px calc(32px + env(safe-area-inset-bottom)); text-align:center; font-size:13px; border-top:.5px solid var(--rule); }
+  footer{ background: var(--bg); color: var(--muted); padding:32px 24px calc(32px + env(safe-area-inset-bottom)); text-align:center; font-size:13px; border-top:.5px solid var(--rule); }
   footer a{ color: var(--blue); text-decoration:none; font-weight:600; }
   footer a:hover{ text-decoration:underline; }
 
   /* ---------------- Page transition overlay (landing -> app) ---------------- */
   .transition-overlay{
     position:fixed; inset:0; z-index:1000;
-    background: rgba(255,255,255,.9); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px);
+    background: var(--overlay); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px);
     display:flex; align-items:center; justify-content:center; flex-direction:column;
     opacity:0; pointer-events:none; transition: opacity .35s ease;
   }
@@ -311,7 +345,7 @@
   .to-stage{ position:relative; width:96px; height:96px; margin-bottom:22px; }
   .to-doc{
     position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
-    width:56px; height:70px; background:#fff; border-radius:12px;
+    width:56px; height:70px; background:var(--card); border-radius:12px;
     box-shadow: 0 0 0 .5px rgba(0,0,0,.08), 0 12px 28px rgba(0,0,0,.16);
     animation: toDocSettle .9s ease forwards;
   }
@@ -394,8 +428,11 @@
 <body>
 
 <nav class="nav" id="nav">
-  <a class="nav-brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="116" height="31" /></a>
-  <a class="nav-cta" href="app.html">Open the app</a>
+  <a class="nav-brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img class="logo-light" src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="116" height="31" /><img class="logo-dark" src="assets/logo/pdfsort-logo-dark-small.png" srcset="assets/logo/pdfsort-logo-dark.png 2x" alt="" width="116" height="31" loading="lazy" /></a>
+  <div class="nav-right">
+    <button class="theme-btn" type="button" data-theme-toggle><span class="i-sun" data-icon="sun"></span><span class="i-moon" data-icon="moon"></span></button>
+    <a class="nav-cta" href="app.html">Open the app</a>
+  </div>
 </nav>
 
 <section class="hero-pin-outer" id="heroPinOuter">

@@ -52,6 +52,8 @@
     arrow:    '<path d="M5 19L19 5M10 5h9v9"/>',
     hash:     '<path d="M9.5 4L7.5 20M16.5 4l-2 16M4 9h16M3.5 15h16"/>',
     filePlus: '<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>',
+    sun:      '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    moon:     '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/>',
     zoomFit:  '<path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/>'
   };
   window.iosIcon = function(name, cls){
