@@ -62,3 +62,6 @@ settings, **Pages → Source** must be set to **GitHub Actions**.
 - **PDF editor** hides the original text under a patch when you edit it — the old text is still inside the
   file, so don't use it for secure redaction. Password-protected PDFs must be unlocked first. Standard PDF
   fonts only (accented Latin works; Chinese or emoji become `?`, and it warns you).
+- **Ads** are built in but switched off. Nothing loads until you set real AdSense IDs in `assets/ads-config.js`
+  (landing page and organizer sidebar only; the editors stay ad-free). The to-do list, including buying a
+  domain, is in [`docs/ADS-SETUP.md`](docs/ADS-SETUP.md). `privacy.html` has two placeholders to fill in.

@@ -430,3 +430,9 @@ select.tsel{ border:none !important; background:var(--ios-fill) !important; bord
 :root[data-theme="dark"] .theme-toggle .i-moon{ display:none; }
 :root[data-theme="dark"] .tool-nav a[aria-current="page"], :root[data-theme="dark"] .seg2 button.on{ color:var(--ink) !important; }
 :root[data-theme="dark"] .tool-nav a[aria-current="page"] .ico{ color:var(--ios-blue-ink); }
+
+/* ---- Ad slots (hidden and zero-size until assets/ads.js switches one on) ---- */
+.ad-slot{ display:none; }
+.ad-slot.ad-on{ display:block; max-width:728px; min-height:90px; margin:24px auto; padding:0 16px; text-align:center; overflow:hidden; }
+.ad-slot .ad-label{ display:block; margin-bottom:4px; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+.ad-slot.ad-rail.ad-on{ margin:12px 0 0; padding:0 12px 12px; min-height:250px; max-width:none; }

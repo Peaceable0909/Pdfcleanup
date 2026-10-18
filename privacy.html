@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<script src="assets/theme.js"></script>
+<title>Privacy — PDFsort</title>
+<meta name="description" content="How PDFsort handles your documents, and what changes when ads are shown." />
+<meta name="theme-color" content="#FFFFFF" data-light="#FFFFFF" />
+<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="assets/ios.css" />
+<style>
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif; line-height:1.6; }
+  .wrap{ max-width:720px; margin:0 auto; padding:32px 20px calc(48px + env(safe-area-inset-bottom)); }
+  .top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  .top a{ color:var(--ios-blue-ink); text-decoration:none; font-weight:600; }
+  h1{ font-size:30px; letter-spacing:-.02em; margin:0 0 6px; }
+  h2{ font-size:18px; margin:28px 0 6px; }
+  p, li{ color:var(--ink); } .muted{ color:var(--ink-soft); }
+  a{ color:var(--ios-blue-ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="index.html">← PDFsort</a><button class="btn-clear-data theme-toggle" type="button" data-theme-toggle title="Switch to dark mode"><span data-icon="moon" class="i-moon" style="display:contents"></span><span data-icon="sun" class="i-sun" style="display:contents"></span></button></div>
+  <h1>Privacy</h1>
+  <p class="muted">Last updated: <!-- TODO: set the date when you publish -->[date]</p>
+
+  <h2>Your documents</h2>
+  <p>PDFsort runs entirely in your browser. The files you open — scans, PDFs, Word files — are read, edited, compressed and exported on your own device. They are never uploaded to a PDFsort server, because there isn’t one.</p>
+
+  <h2>What is stored on your device</h2>
+  <p>Your settings (theme, compression level) and, for the organizer, your in-progress work are kept in your browser’s local storage so you can pick up where you left off. “Clear data” in the organizer removes the work; clearing site data in your browser removes everything.</p>
+
+  <h2>Ads</h2>
+  <p>This site may show advertising from Google AdSense. When ads are on, Google and its partners may set cookies or use similar technology to serve ads, and they can see the page you are on and your IP address — <strong>never your documents</strong>, which stay inside PDFsort. Ads are not shown inside the editing areas.</p>
+  <p>You can learn how Google uses data and manage ad settings at <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">policies.google.com/technologies/partner-sites</a> and <a href="https://adssettings.google.com" rel="noopener">adssettings.google.com</a>.</p>
+
+  <h2>Third-party libraries</h2>
+  <p>To work, PDFsort loads open-source libraries (PDF, Word and OCR processing) from public content delivery networks. Those requests expose your IP address to the CDN, as with any website.</p>
+
+  <h2>Contact</h2>
+  <p><!-- TODO: add a real contact email once you have one -->[your contact email]</p>
+</div>
+<script src="assets/icons.js"></script>
+</body>
+</html>
