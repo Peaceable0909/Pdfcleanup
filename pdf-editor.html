@@ -194,6 +194,21 @@
     .thumb .acts{ display:none; } .thumb .badge{ top:7px; left:7px; }
     .viewer{ padding:12px; }
     .zoomer{ display:none; }
+    /* Phones: keep the chrome short so the page itself gets most of the screen */
+    header.top{ gap:8px; }
+    header.top .tool-nav{ width:auto; order:0; margin-left:auto; }
+    header.top .tool-nav a{ flex:0 0 auto; padding:7px 12px; }
+    header.top .tool-nav a span{ display:none; }
+    .hdr-actions{ order:5; width:100%; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+    .hdr-actions::-webkit-scrollbar{ display:none; }
+    .hdr-actions .pill{ flex:0 0 auto; }
+    #saveBtn{ order:-1; }
+    .tool{ min-width:56px; padding:4px 6px; }
+    .props{ flex-wrap:nowrap; overflow-x:auto; min-height:44px; padding:6px 14px; scrollbar-width:none; }
+    .props::-webkit-scrollbar{ display:none; }
+    .props .grp, .props .hint{ flex:0 0 auto; white-space:nowrap; }
+    .props .hint:only-child{ white-space:normal; }
+    .thumbs.single{ display:none; }
   }
 </style>
 <link rel="stylesheet" href="assets/ios.css" />
@@ -207,9 +222,9 @@
   <header class="top">
     <a class="brand" href="index.html" title="PDFsort home" aria-label="PDFsort home"><img class="brand-logo brand-logo-light" src="assets/logo/pdfsort-logo-small.png" srcset="assets/logo/pdfsort-logo.png 2x" alt="PDFsort" width="110" height="30" /><img class="brand-logo brand-logo-dark" src="assets/logo/pdfsort-logo-dark-small.png" srcset="assets/logo/pdfsort-logo-dark.png 2x" alt="" width="110" height="30" loading="lazy" /></a>
     <nav class="tool-nav" aria-label="Tools">
-      <a href="app.html" data-icon="docs" title="Document organizer"><span>Organize</span></a>
-      <a href="pdf-editor.html" data-icon="pen" title="PDF editor" aria-current="page"><span>PDF</span></a>
-      <a href="word-editor.html" data-icon="word" title="Word editor"><span>Word</span></a>
+      <a href="app.html" data-icon="docs" title="Document organizer" aria-label="Organizer"><span>Organize</span></a>
+      <a href="pdf-editor.html" data-icon="pen" title="PDF editor" aria-label="PDF editor" aria-current="page"><span>PDF</span></a>
+      <a href="word-editor.html" data-icon="word" title="Word editor" aria-label="Word editor"><span>Word</span></a>
     </nav>
     <div class="hdr-actions">
       <button class="pill" id="openBtn" type="button" data-icon="upload" title="Open a PDF"><span class="lbl">Open</span></button>
@@ -451,7 +466,7 @@ function resetThumbObserver(){
   }, { root:$('thumbs'), rootMargin:'300px' });
 }
 async function renderThumbs(){
-  const box = $('thumbs'); box.innerHTML = ''; resetThumbObserver();
+  const box = $('thumbs'); box.innerHTML = ''; box.classList.toggle('single', state.pages.length <= 1); resetThumbObserver();
   state.pages.forEach((pg, i)=>{
     const d = document.createElement('div');
     d.className = 'thumb' + (i === state.cur ? ' active' : ''); d.draggable = true; d.dataset.i = i;
@@ -731,7 +746,8 @@ function onPointerUp(e){
   if(k === 'box' && (a.w < 3 || a.h < 3)) pg.annots = pg.annots.filter(x => x !== a);
   else if(k === 'line' && Math.hypot(a.x2 - a.x, a.y2 - a.y) < 3) pg.annots = pg.annots.filter(x => x !== a);
   else if(k === 'draw'){ if(a.pts.length < 2) a.pts.push([a.pts[0][0] + 0.1, a.pts[0][1]]); }
-  if(['box','line','draw'].includes(k) && pg.annots.includes(a)){ state.selected = a.id; state.tool = 'select'; }
+  // Shapes switch back to the select tool; the pencil stays on so several strokes can follow each other.
+  if(['box','line'].includes(k) && pg.annots.includes(a)){ state.selected = a.id; state.tool = 'select'; }
   if(snap() !== before) pushUndo(before);
   refresh();
 }
