@@ -262,6 +262,13 @@
   #toolbarEditBtn{ color: var(--stamp); }
   .doc-toolbar .filename{ font-family:'Inter', sans-serif; font-size:12px; color: var(--stamp); margin-top:3px; }
   .toolbar-actions{ display:flex; gap:8px; align-items:center; }
+  @media (max-width: 760px){
+    /* Phones: let the actions wrap (Delete used to run off-screen and widen the whole page) and give small buttons a finger-sized target */
+    .doc-toolbar{ padding:14px 16px 10px; }
+    .toolbar-actions{ flex-wrap:wrap; width:100%; }
+    .icon-btn{ min-width:40px; min-height:40px; }
+    .toolbar-title-input{ min-width:0; width:100%; flex:1 1 auto; }
+  }
 
   .page-grid{
     display:flex; flex-wrap:wrap; gap:16px;
@@ -406,6 +413,16 @@
   }
   .lightbox .lb-close:hover{ background: rgba(255,255,255,0.2); }
   .lightbox .lb-close:active{ transform: scale(0.92); }
+  @media (max-width: 760px){
+    /* Phones: the control row used to run off the screen (Draw / Sign unreachable) and the page covered the close button */
+    .lightbox{ padding:60px 0 calc(16px + env(safe-area-inset-bottom)); }
+    .lightbox img{ max-width:92vw; max-height:calc(100vh - 190px); max-height:calc(100dvh - 190px); object-fit:contain; }
+    .lightbox .lb-controls{ flex-wrap:wrap; justify-content:center; gap:8px; max-width:94vw; margin-top:12px; }
+    .lightbox .lb-controls button{ padding:10px 14px; font-size:13px; }
+    #lbPageLabel{ flex-basis:100%; order:-1; text-align:center; }
+    #lbMarkup{ background:var(--ios-blue) !important; border-color:var(--ios-blue) !important; }
+    .lightbox .lb-close{ top:calc(10px + env(safe-area-inset-top)); right:14px; width:44px; height:44px; z-index:2; }
+  }
 
   .toast{
     position:fixed; bottom:140px; left:50%;
@@ -657,13 +674,18 @@
     .editor-tools{ justify-content:flex-start; }
   }
   @media (max-width: 620px){
-    .editor-topbar{ padding:10px; }
-    .editor-tools{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
-    .editor-tool-group{ min-width:0; }
-    .editor-tool-group-label{ font-size:8px; }
-    .editor-action-group{ grid-column:1 / -1; justify-content:flex-end; }
-    .editor-tools button.plain, .editor-tools .tool-btn{ padding:6px 9px; font-size:11.5px; }
-    .editor-tools input[type=range]{ width:64px; }
+    /* Phones: one scrolling row of tools (Cancel / Save first) so the page keeps most of the screen */
+    .editor-topbar{ grid-template-columns:minmax(0,1fr); padding:8px 10px; min-width:0; gap:6px; padding-top:calc(8px + env(safe-area-inset-top)); }
+    .editor-title{ display:none; }
+    .editor-tools{ display:flex; flex-wrap:nowrap; overflow-x:auto; width:100%; max-width:100%; justify-content:flex-start; gap:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .editor-tools::-webkit-scrollbar{ display:none; }
+    .editor-tool-group{ flex:0 0 auto; flex-wrap:nowrap; padding:4px 6px; }
+    .editor-tool-group-label{ display:none; }
+    .editor-action-group{ order:-1; }
+    .editor-tools button, .editor-tools .tool-btn{ white-space:nowrap; flex:0 0 auto; }
+    .editor-tools button.plain, .editor-tools .tool-btn{ padding:9px 12px; font-size:12.5px; }
+    .editor-tools input[type=range]{ width:80px; }
+    .editor-canvas-wrap{ padding:10px; align-items:flex-start; }
   }
   .toolbar-actions .add-pages-drop-target{
     position:relative; border-style:dashed; transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
