@@ -1083,7 +1083,7 @@ async function openFromOrganizer(){
   const p = await Handoff.take('toEditor');
   if(!p){ toast('Nothing to open — choose a PDF to get started'); return; }
   await loadFiles([new File([p.bytes], p.name || 'document.pdf', { type:'application/pdf' })], false);
-  if(state.pages.length){ state.origin = { docId:p.docId, docType:p.docType }; updateButtons(); toast('Opened from the organizer — click “Save to organizer” when you’re done', 'success'); }
+  if(state.pages.length){ state.origin = { docId:p.docId, docType:p.docType }; updateButtons(); toast('Opened from the organizer — use the “Save to organizer” button when you’re done', 'success'); }
 }
 
 /* ============================== wiring ============================== */
